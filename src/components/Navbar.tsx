@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 
@@ -141,15 +141,30 @@ const Overlay = styled.div<{ isOpen: boolean }>`
   }
 `;
 
+const MenuItem = styled(Link)<{ isActive?: boolean }>`
+  color: ${props => props.isActive ? '#000' : '#333'};
+  font-weight: ${props => props.isActive ? '600' : '400'};
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+`;
+
 const Navbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const [visible, setVisible] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [prevScrollPos, setPrevScrollPos] = useState(0);
+  const location = useLocation();
 
   useEffect(() => {
     const handleScroll = () => {
-      const currentScrollPos = window.scrollY;
+      const currentScrollPos = window.pageYOffset;
       
       if (currentScrollPos > 10) {
         setScrolled(true);
@@ -157,8 +172,7 @@ const Navbar: React.FC = () => {
         setScrolled(false);
       }
       
-      const isVisible = prevScrollPos > currentScrollPos || currentScrollPos < 10;
-      setVisible(isVisible);
+      setVisible(prevScrollPos > currentScrollPos || currentScrollPos < 10);
       
       setPrevScrollPos(currentScrollPos);
     };
@@ -178,7 +192,7 @@ const Navbar: React.FC = () => {
   return (
     <>
       <NavContainer scrolled={scrolled} visible={visible}>
-        <Logo to="/">CutCut</Logo>
+        <Logo to="/home">CutCut</Logo>
         
         <HamburgerIcon onClick={toggleMenu} isOpen={isOpen}>
           <span></span>
@@ -188,16 +202,19 @@ const Navbar: React.FC = () => {
         
         <NavLinks isOpen={isOpen}>
           <NavLink>
-            <StyledLink to="/" onClick={closeMenu}>首页</StyledLink>
+            <MenuItem to="/home" isActive={location.pathname === '/home'}>首页</MenuItem>
           </NavLink>
           <NavLink>
-            <StyledLink to="/gallery" onClick={closeMenu}>相册</StyledLink>
+            <MenuItem to="/gallery" isActive={location.pathname === '/gallery'}>相册</MenuItem>
           </NavLink>
           <NavLink>
-            <StyledLink to="/diary" onClick={closeMenu}>日记</StyledLink>
+            <MenuItem to="/diary" isActive={location.pathname === '/diary'}>日记</MenuItem>
           </NavLink>
           <NavLink>
-            <StyledLink to="/upload" onClick={closeMenu}>上传</StyledLink>
+            <MenuItem to="/story" isActive={location.pathname === '/story'}>我们的故事</MenuItem>
+          </NavLink>
+          <NavLink>
+            <MenuItem to="/upload" isActive={location.pathname === '/upload'}>上传</MenuItem>
           </NavLink>
         </NavLinks>
       </NavContainer>
