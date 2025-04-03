@@ -1,25 +1,27 @@
 import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import GlobalStyles from './styles/GlobalStyles';
+import Navbar from './components/Navbar';
+import Home from './pages/Home';
+import Upload from './pages/Upload';
+import { AnimatePresence } from 'framer-motion';
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <GlobalStyles />
+      <Navbar />
+      <AnimatePresence mode="wait">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/upload" element={<Upload />} />
+          <Route path="/gallery" element={<div style={{ paddingTop: '80px', textAlign: 'center' }}>相册页面 - 开发中</div>} />
+          <Route path="/diary" element={<div style={{ paddingTop: '80px', textAlign: 'center' }}>日记页面 - 开发中</div>} />
+          <Route path="/story" element={<div style={{ paddingTop: '80px', textAlign: 'center' }}>我们的故事页面 - 开发中</div>} />
+          <Route path="*" element={<div style={{ paddingTop: '80px', textAlign: 'center' }}>页面不存在</div>} />
+        </Routes>
+      </AnimatePresence>
+    </Router>
   );
 }
 
