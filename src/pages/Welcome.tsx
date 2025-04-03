@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import Typewriter from '../components/Typewriter';
+import ParticleBackground from '../components/ParticleBackground';
 
 const WelcomeContainer = styled.div`
   height: 100vh;
@@ -32,6 +33,10 @@ const ContentWrapper = styled(motion.div)`
   z-index: 2;
   text-align: center;
   max-width: 800px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 `;
 
 const Title = styled(motion.h1)`
@@ -41,6 +46,8 @@ const Title = styled(motion.h1)`
   background: linear-gradient(to right, #f5f5f5, #aaa);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+  filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.2));
   
   @media (max-width: 768px) {
     font-size: 48px;
@@ -51,11 +58,15 @@ const Title = styled(motion.h1)`
   }
 `;
 
-const Subtitle = styled(motion.div)`
+const SubtitleWrapper = styled(motion.div)`
+  margin-bottom: 3rem;
+`;
+
+const Subtitle = styled.div`
   font-size: 24px;
   font-weight: 400;
-  margin-bottom: 3rem;
   color: #bbb;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
   
   @media (max-width: 768px) {
     font-size: 20px;
@@ -76,49 +87,155 @@ const EnterButton = styled(motion.button)`
   padding: 15px 40px;
   cursor: pointer;
   margin-top: 20px;
-  transition: all 0.3s ease;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
   
-  &:hover {
-    background-color: white;
-    color: black;
+  &:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.2);
+    transition: width 0.5s ease;
+    z-index: -1;
   }
+  
+  &:hover:before {
+    width: 100%;
+  }
+`;
+
+// 闪光效果
+const Sparkle = styled(motion.div)`
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: white;
+  box-shadow: 0 0 10px white, 0 0 20px white;
+  z-index: 3;
 `;
 
 const Welcome: React.FC = () => {
   const navigate = useNavigate();
+  const [showButton, setShowButton] = useState(false);
+  const [sparkles, setSparkles] = useState<{id: number; x: number; y: number}[]>([]);
   
   // 清除之前保存在localStorage中的访问记录
   useEffect(() => {
     localStorage.removeItem('hasVisited');
   }, []);
   
+  // 随机生成闪光效果
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (sparkles.length >= 20) {
+        // 限制最大闪光数量
+        setSparkles(prev => prev.slice(1));
+      }
+      
+      // 生成新闪光
+      const newSparkle = {
+        id: Date.now(),
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight
+      };
+      
+      setSparkles(prev => [...prev, newSparkle]);
+      
+      // 3秒后移除闪光
+      setTimeout(() => {
+        setSparkles(prev => prev.filter(s => s.id !== newSparkle.id));
+      }, 3000);
+    }, 300);
+    
+    return () => clearInterval(interval);
+  }, [sparkles.length]);
+  
+  const handleTypingComplete = () => {
+    setShowButton(true);
+  };
+  
   const handleEnter = () => {
-    // 直接导航到主页，不记录访问状态
+    // 点击按钮后导航到主页
     navigate('/home');
   };
   
   return (
     <WelcomeContainer>
+      <ParticleBackground />
       <BackgroundGradient />
+      
+      {/* 随机闪光效果 */}
+      {sparkles.map(sparkle => (
+        <Sparkle
+          key={sparkle.id}
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ 
+            opacity: [0, 1, 0],
+            scale: [0, 1, 0]
+          }}
+          transition={{ duration: 3 }}
+          style={{
+            left: sparkle.x,
+            top: sparkle.y
+          }}
+        />
+      ))}
+      
       <ContentWrapper
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         transition={{ duration: 1 }}
       >
-        <Title>CutCut</Title>
-        <Subtitle>
-          <Typewriter 
-            text="这是一个专属于我们的空间，记录每一个珍贵瞬间" 
-            delay={100} 
-          />
-        </Subtitle>
-        <EnterButton
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={handleEnter}
+        <Title
+          initial={{ y: -50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 1 }}
         >
-          进入网站
-        </EnterButton>
+          CutCut
+        </Title>
+        
+        <SubtitleWrapper
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1, delay: 0.5 }}
+        >
+          <Subtitle>
+            <Typewriter 
+              text="这是一个专属于我们的空间，记录每一个珍贵瞬间" 
+              delay={100}
+              onComplete={handleTypingComplete}
+            />
+          </Subtitle>
+        </SubtitleWrapper>
+        
+        {showButton && (
+          <EnterButton
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ 
+              opacity: 1, 
+              scale: 1,
+              boxShadow: [
+                "0 0 0 rgba(255, 255, 255, 0)",
+                "0 0 20px rgba(255, 255, 255, 0.5)",
+                "0 0 10px rgba(255, 255, 255, 0.3)"
+              ]
+            }}
+            transition={{ 
+              duration: 0.8,
+              boxShadow: { duration: 2, repeat: Infinity, repeatType: "reverse" }
+            }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleEnter}
+          >
+            进入网站
+          </EnterButton>
+        )}
       </ContentWrapper>
     </WelcomeContainer>
   );

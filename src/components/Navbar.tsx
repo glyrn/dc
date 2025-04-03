@@ -80,6 +80,7 @@ const NavLink = styled(motion.div)`
   }
 `;
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const StyledLink = styled(Link)`
   font-family: var(--font-sans);
   font-size: 1rem;
