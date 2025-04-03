@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { motion, useAnimation } from 'framer-motion';
 import PhotoGrid from '../components/PhotoGrid';
 import { Link } from 'react-router-dom';
+import Typewriter from '../components/Typewriter';
 
 const HomeContainer = styled.div`
   overflow-x: hidden;
@@ -184,7 +185,7 @@ const Home: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
-            珍藏每一个难忘瞬间
+            <Typewriter text="珍藏每一个难忘瞬间" delay={150} />
           </HeroSubtitle>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
