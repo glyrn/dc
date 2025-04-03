@@ -206,8 +206,8 @@ const Welcome: React.FC = () => {
         >
           <Subtitle>
             <Typewriter 
-              text="这是一个专属于我们的空间，记录每一个珍贵瞬间" 
-              delay={100}
+              text="欢迎来到好运莲莲的空间" 
+              delay={200}
               onComplete={handleTypingComplete}
             />
           </Subtitle>
@@ -233,7 +233,7 @@ const Welcome: React.FC = () => {
             whileTap={{ scale: 0.95 }}
             onClick={handleEnter}
           >
-            进入网站
+            开启探索
           </EnterButton>
         )}
       </ContentWrapper>
