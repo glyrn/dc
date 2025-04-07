@@ -32,6 +32,13 @@ const Logo = styled(Link)`
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--secondary-color);
+  text-decoration: none;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    text-decoration: none;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+  }
 `;
 
 const NavLinks = styled.div<{ isOpen: boolean }>`
@@ -73,10 +80,6 @@ const NavLink = styled(motion.div)`
     background-color: var(--accent-color);
     transform: scaleX(0);
     transition: transform 0.2s ease;
-  }
-  
-  &:hover::after {
-    transform: scaleX(1);
   }
 `;
 
@@ -153,6 +156,8 @@ const MenuItem = styled(Link)<{ isActive?: boolean }>`
   
   &:hover {
     background-color: rgba(0, 0, 0, 0.05);
+    text-decoration: none;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
   }
 `;
 

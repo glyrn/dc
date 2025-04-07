@@ -29,7 +29,7 @@ const HeroTitle = styled(motion.h1)`
   line-height: 1.07143;
   font-weight: 600;
   letter-spacing: -0.005em;
-  margin-bottom: 1rem;
+  margin-bottom: 2.5rem;
   
   @media (max-width: 768px) {
     font-size: 40px;
@@ -187,21 +187,6 @@ const Home: React.FC = () => {
           >
             <Typewriter text="珍藏每一个难忘瞬间" delay={150} />
           </HeroSubtitle>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-          >
-            <Link to="/upload">
-              <ActionButton
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-              >
-                上传照片
-              </ActionButton>
-            </Link>
-            <ActionLink to="/gallery">浏览照片相册 {'>'}</ActionLink>
-          </motion.div>
         </HeroContent>
         <ChevronDown
           onClick={scrollToNextSection}
