@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import timelineData from '../timeline-data.json'; // 导入时间轴数据
 import { motion, useAnimation } from 'framer-motion';
@@ -212,8 +212,8 @@ const containerVariants = {
     opacity: 1,
     transition: { 
       when: "beforeChildren",
-      staggerChildren: 0.5, // 增加延迟，让每个事件之间有更明显的间隔
-      delayChildren: 0.3
+      staggerChildren: 0.4, // 稍微减少延迟
+      delayChildren: 0.1
     }
   }
 };
@@ -233,56 +233,20 @@ const itemVariants = {
 };
 
 const lineVariants = {
-  hidden: { height: 0 },
+  hidden: { scaleY: 0 },
   visible: { 
-    height: '100%',
+    scaleY: 1,
     transition: { 
-      duration: 1.5,
+      duration: 2,
       ease: "easeInOut"
     }
   }
 };
 
-const TimelineItemComponent = ({ item, index }: { item: any, index: number }) => {
-  const controls = useAnimation();
-  const [ref, inView] = useInView({
-    triggerOnce: true,
-    threshold: 0.2
-  });
-
-  useEffect(() => {
-    if (inView) {
-      // 使用索引设置延迟，第一个事件最先出现
-      controls.start({
-        opacity: 1,
-        y: 0,
-        scale: 1,
-        transition: {
-          type: "spring",
-          stiffness: 70,
-          damping: 15,
-          delay: index * 0.3 // 按索引递增延迟
-        }
-      });
-    }
-  }, [controls, inView, index]);
-
-  return (
-    <TimelineItem ref={ref}>
-      <TimelineItemCard
-        initial={{ opacity: 0, y: 50, scale: 0.85 }}
-        animate={controls}
-      >
-        <TimelineDate>{item.date}</TimelineDate>
-        <TimelineTitle>{item.title}</TimelineTitle>
-        <TimelineDescription>{item.description}</TimelineDescription>
-      </TimelineItemCard>
-    </TimelineItem>
-  );
-};
-
 const Timeline: React.FC = () => {
   const controls = useAnimation();
+  const lineControls = useAnimation();
+  const containerRef = useRef<HTMLDivElement>(null);
   const [titleRef, titleInView] = useInView({
     triggerOnce: true,
     threshold: 0.1
@@ -300,21 +264,29 @@ const Timeline: React.FC = () => {
           duration: 0.7 
         }
       });
+      
+      // 标题显示后，开始线条动画
+      setTimeout(() => {
+        lineControls.start('visible');
+      }, 500);
     }
-  }, [controls, titleInView]);
+  }, [controls, lineControls, titleInView]);
 
-  // 排序数据：确保按日期顺序排列（从早到晚）
+  // 排序数据：确保按日期顺序排列（从晚到早）- 反向排序
   const sortedData = [...timelineData].sort((a, b) => {
     // 处理"未来"特殊情况
-    if (a.date === '未来') return 1;
-    if (b.date === '未来') return -1;
+    if (a.date === '未来') return -1; // 未来应该在最上面
+    if (b.date === '未来') return 1;
     
-    // 常规日期比较
-    return new Date(a.date).getTime() - new Date(b.date).getTime();
+    // 常规日期比较 - 注意这里是反向排序
+    return new Date(b.date).getTime() - new Date(a.date).getTime();
   });
 
+  // 确保最早的事件索引最大
+  const reversedForAnimation = [...sortedData].reverse();
+
   return (
-    <TimelineContainer>
+    <TimelineContainer ref={containerRef}>
       <PageTitle 
         ref={titleRef}
         initial={{ opacity: 0, y: -30 }}
@@ -328,30 +300,121 @@ const Timeline: React.FC = () => {
         initial="hidden"
         animate="visible"
         className="timeline-items-container"
+        style={{ 
+          display: 'flex', 
+          flexDirection: 'column-reverse', // 反向布局，让最早的事件在底部
+          position: 'relative'
+        }}
       >
         <motion.div 
           className="timeline-line"
-          variants={lineVariants}
           initial="hidden"
-          animate="visible"
+          animate={lineControls}
+          variants={lineVariants}
           style={{
             position: 'absolute',
-            top: '160px',
-            bottom: '40px',
+            top: '20px',
+            bottom: '0',
             left: '50%',
             width: '3px',
-            background: 'linear-gradient(to bottom, rgba(108, 92, 231, 0.2), rgba(108, 92, 231, 0.8), rgba(108, 92, 231, 0.2))',
+            height: 'calc(100% - 20px)',
+            background: 'linear-gradient(to bottom, rgba(108, 92, 231, 0.8), rgba(108, 92, 231, 0.2))',
             zIndex: 0,
             borderRadius: '1.5px',
-            transformOrigin: 'top',
+            transformOrigin: 'bottom',
             transform: 'translateX(-50%)'
           }}
         />
-        {sortedData.map((item, index) => (
-          <TimelineItemComponent key={index} item={item} index={index} />
+        {reversedForAnimation.map((item, index) => (
+          <TimelineItemWithScroll 
+            key={index} 
+            item={item} 
+            index={index} 
+            totalItems={reversedForAnimation.length}
+            containerRef={containerRef as React.RefObject<HTMLDivElement>}
+          />
         ))}
       </motion.div>
     </TimelineContainer>
+  );
+};
+
+// 修改参数类型定义
+interface TimelineItemWithScrollProps {
+  item: any;
+  index: number;
+  totalItems: number;
+  containerRef: React.RefObject<HTMLDivElement>;
+}
+
+const TimelineItemWithScroll = ({ 
+  item, 
+  index,
+  totalItems,
+  containerRef
+}: TimelineItemWithScrollProps) => {
+  const controls = useAnimation();
+  const itemRef = useRef<HTMLDivElement>(null);
+  const [inViewRef, inView] = useInView({
+    triggerOnce: true,
+    threshold: 0.1
+  });
+
+  // 合并ref
+  const setRefs = React.useCallback(
+    (node: HTMLDivElement | null) => {
+      // 保存在我们的ref中
+      itemRef.current = node;
+      // 传递给inViewRef
+      inViewRef(node);
+    },
+    [inViewRef],
+  );
+
+  // 计算反向的索引（最早的事件索引最小，最新的最大）
+  const reverseIndex = totalItems - 1 - index;
+
+  useEffect(() => {
+    if (inView) {
+      // 显示当前项
+      controls.start({
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        transition: {
+          type: "spring",
+          stiffness: 70,
+          damping: 15,
+          delay: reverseIndex * 0.5 // 最早的事件最先开始动画
+        }
+      });
+
+      // 自动滚动逻辑 - 当新项显示时，滚动页面
+      if (containerRef.current && reverseIndex < totalItems - 1) {
+        const itemHeight = itemRef.current?.getBoundingClientRect().height || 0;
+        const scrollTo = containerRef.current.scrollTop + itemHeight + 60; // 60是项目间距
+
+        setTimeout(() => {
+          containerRef.current?.scrollTo({
+            top: scrollTo,
+            behavior: 'smooth'
+          });
+        }, (reverseIndex * 0.5 + 0.7) * 1000); // 在项目动画开始后滚动
+      }
+    }
+  }, [controls, inView, reverseIndex, totalItems, containerRef]);
+
+  return (
+    <TimelineItem ref={setRefs}>
+      <TimelineItemCard
+        initial={{ opacity: 0, y: 50, scale: 0.85 }}
+        animate={controls}
+      >
+        <TimelineDate>{item.date}</TimelineDate>
+        <TimelineTitle>{item.title}</TimelineTitle>
+        <TimelineDescription>{item.description}</TimelineDescription>
+      </TimelineItemCard>
+    </TimelineItem>
   );
 };
 
