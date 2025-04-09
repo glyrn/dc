@@ -6,11 +6,17 @@ CONTAINER_NAME="my-timeline-container"
 HOST_PORT="8080"
 # ------------
 
+# 检查镜像是否存在
+if [ -z "$(docker images -q ${IMAGE_NAME})" ]; then
+    echo "错误：镜像 ${IMAGE_NAME} 不存在。请先运行 build.sh 构建镜像。"
+    exit 1
+fi
+
 # 检查容器是否已在运行
 if [ "$(docker ps -q -f name=^/${CONTAINER_NAME}$)" ]; then
     echo "容器 ${CONTAINER_NAME} 已经在运行。"
-    echo "如果需要重启，请使用 restart.sh"
-    exit 1
+    echo "访问: http://localhost:${HOST_PORT}"
+    exit 0 # 或者可以选择重启，看需求
 fi
 
 # 检查是否存在已停止的同名容器，如果存在则移除
@@ -19,16 +25,8 @@ if [ "$(docker ps -aq -f status=exited -f name=^/${CONTAINER_NAME}$)" ]; then
     docker rm ${CONTAINER_NAME}
 fi
 
-# 构建镜像
-echo "正在构建镜像 ${IMAGE_NAME}..."
-docker build -t ${IMAGE_NAME} .
-if [ $? -ne 0 ]; then
-    echo "镜像构建失败！"
-    exit 1
-fi
-
-# 运行容器
-echo "正在启动容器 ${CONTAINER_NAME}，映射端口 ${HOST_PORT}:80..."
+# 运行容器 (使用现有镜像)
+echo "正在启动容器 ${CONTAINER_NAME} (使用镜像 ${IMAGE_NAME})，映射端口 ${HOST_PORT}:80..."
 docker run -d -p ${HOST_PORT}:80 --name ${CONTAINER_NAME} ${IMAGE_NAME}
 
 if [ $? -eq 0 ]; then
