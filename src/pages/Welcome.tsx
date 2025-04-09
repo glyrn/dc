@@ -123,6 +123,7 @@ const Welcome: React.FC = () => {
   const navigate = useNavigate();
   const [showButton, setShowButton] = useState(false);
   const [sparkles, setSparkles] = useState<{id: number; x: number; y: number}[]>([]);
+  const [progressComplete, setProgressComplete] = useState(false);
   
   // 清除之前保存在localStorage中的访问记录
   useEffect(() => {
@@ -157,6 +158,19 @@ const Welcome: React.FC = () => {
   
   const handleTypingComplete = () => {
     setShowButton(true);
+  };
+  
+  const handleButtonHoverStart = () => {
+    setProgressComplete(false);
+    
+    // 0.3秒后触发抖动效果
+    setTimeout(() => {
+      setProgressComplete(true);
+    }, 300);
+  };
+  
+  const handleButtonHoverEnd = () => {
+    setProgressComplete(false);
   };
   
   const handleEnter = () => {
@@ -207,7 +221,7 @@ const Welcome: React.FC = () => {
           <Subtitle>
             <Typewriter 
               text="欢迎来到好运莲莲的空间" 
-              delay={200}
+              delay={180}
               onComplete={handleTypingComplete}
             />
           </Subtitle>
@@ -219,6 +233,8 @@ const Welcome: React.FC = () => {
             animate={{ 
               opacity: 1, 
               scale: 1,
+              rotate: 0,
+              x: 0,
               boxShadow: [
                 "0 0 0 rgba(255, 255, 255, 0)",
                 "0 0 20px rgba(255, 255, 255, 0.5)",
@@ -229,9 +245,23 @@ const Welcome: React.FC = () => {
               duration: 0.8,
               boxShadow: { duration: 2, repeat: Infinity, repeatType: "reverse" }
             }}
-            whileHover={{ scale: 1.05 }}
+            whileHover={{ 
+              boxShadow: "0 0 15px rgba(255, 255, 255, 0.8)",
+              ...(progressComplete && {
+                scale: [1, 1.1, 1.05, 1.15, 1.1],
+                rotate: [0, -2, 2, -2, 0],
+                x: [0, -5, 5, -5, 0],
+                transition: { 
+                  duration: 0.5, 
+                  repeat: Infinity,
+                  repeatType: "reverse" 
+                }
+              })
+            }}
             whileTap={{ scale: 0.95 }}
             onClick={handleEnter}
+            onHoverStart={handleButtonHoverStart}
+            onHoverEnd={handleButtonHoverEnd}
           >
             开启探索
           </EnterButton>
