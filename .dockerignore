@@ -1,0 +1,23 @@
+# Git
+.git
+.gitignore
+
+# Node
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Build artifacts (These are generated locally, Docker context doesn't need the source build process)
+# BUT, we DO need the final 'build' directory in the context to COPY from.
+# So, make sure 'build' or your build output directory is NOT listed here.
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env*
+!.env.example
+
+# Script directory (if you move scripts there)
+# scripts/ 

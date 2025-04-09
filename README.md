@@ -1,46 +1,95 @@
-# Getting Started with Create React App
+# My Timeline App
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+这是一个 [简要描述你的应用].
 
-## Available Scripts
+## 先决条件
 
-In the project directory, you can run:
+*   Node.js (建议版本 v18 或更高)
+*   npm (通常随 Node.js 安装) 或 yarn
+*   Docker
 
-### `npm start`
+## 本地开发
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+1.  **克隆仓库:**
+    ```bash
+    git clone <your-repo-url>
+    cd my-timeline-app
+    ```
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+2.  **安装依赖:**
+    ```bash
+    npm install
+    # 或者
+    # yarn install
+    ```
 
-### `npm test`
+3.  **启动开发服务器:**
+    ```bash
+    npm start
+    # 或者
+    # yarn start
+    ```
+    应用将在 `http://localhost:3000` (或其他端口) 启动，并支持热重载。
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## 生产构建与 Docker 部署
 
-### `npm run build`
+此项目采用 **本地构建** + **Docker 运行** 的方式部署。
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+1.  **本地构建应用:**
+    在项目根目录运行以下命令，生成优化后的静态文件到 `build/` 目录：
+    ```bash
+    npm run build
+    # 或者
+    # yarn build
+    ```
+    *重要提示:* 每次更新代码后，如果需要部署最新版本，都需要重新执行此步骤。
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+2.  **构建 Docker 镜像:**
+    此命令会使用本地 `build/` 目录中的静态文件和 `nginx.conf` 配置来构建一个轻量级的 Nginx Docker 镜像。
+    ```bash
+    sh build.sh
+    ```
+    *注意:* 确保在运行此命令前已成功执行步骤 1 (`npm run build`)。
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+3.  **启动 Docker 容器:**
+    使用上一步构建的镜像来启动容器。
+    ```bash
+    sh start.sh
+    ```
+    容器将在后台运行，并将应用的 80 端口映射到主机的 8080 端口。
 
-### `npm run eject`
+4.  **访问应用:**
+    在浏览器中打开: `http://localhost:8080`
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+5.  **停止 Docker 容器:**
+    停止并移除正在运行的应用容器。
+    ```bash
+    sh stop.sh
+    ```
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+6.  **重启 Docker 容器:**
+    快速重启正在运行的应用容器 (不会重新构建镜像)。
+    ```bash
+    sh restart.sh
+    ```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+## 配置
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+*   **Docker 端口:** 可以在 `start.sh` 脚本中修改 `HOST_PORT` 变量来更改映射到主机的端口。
+*   **Nginx 配置:** 可以在 `nginx.conf` 文件中调整 Nginx 的行为，例如缓存策略、反向代理等。
+*   **(如果需要) 环境变量:** React 应用通常使用 `.env` 文件管理环境变量。确保按照 Create React App 的规则 ([https://create-react-app.dev/docs/adding-custom-environment-variables/](https://create-react-app.dev/docs/adding-custom-environment-variables/)) 进行配置。生产构建时，`REACT_APP_` 前缀的环境变量会被嵌入到静态文件中。
 
-## Learn More
+## 文件结构说明
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+```
+your-project-root/
+├── public/             # 静态资源模板
+├── src/                # React 源码
+├── build/              # !! 本地构建产物 (npm run build 后生成) !!
+├── scripts/            # (可选) 存放 .sh 脚本
+├── Dockerfile          # Nginx 生产环境 Docker 配置
+├── nginx.conf          # Nginx 配置文件
+├── package.json        # 项目依赖与脚本
+├── .dockerignore       # Docker 构建忽略文件
+└── README.md           # 本文档
+```
