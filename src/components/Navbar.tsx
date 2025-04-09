@@ -219,9 +219,6 @@ const Navbar: React.FC = () => {
           <NavLink>
             <MenuItem to="/timeline" isActive={location.pathname === '/timeline'}>时间轴</MenuItem>
           </NavLink>
-          <NavLink>
-            <MenuItem to="/upload" isActive={location.pathname === '/upload'}>上传</MenuItem>
-          </NavLink>
         </NavLinks>
       </NavContainer>
       <Overlay isOpen={isOpen} onClick={closeMenu} />
