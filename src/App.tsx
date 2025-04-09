@@ -5,6 +5,8 @@ import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Welcome from './pages/Welcome';
 import Upload from './pages/Upload';
+import Gallery from './pages/Gallery';
+import Timeline from './pages/Timeline';
 import { AnimatePresence } from 'framer-motion';
 
 // 创建一个带导航栏的布局组件
@@ -37,7 +39,7 @@ function App() {
           } />
           <Route path="/gallery" element={
             <NavbarLayout>
-              <div style={{ paddingTop: '80px', textAlign: 'center' }}>相册页面 - 开发中</div>
+              <Gallery />
             </NavbarLayout>
           } />
           <Route path="/diary" element={
@@ -45,9 +47,9 @@ function App() {
               <div style={{ paddingTop: '80px', textAlign: 'center' }}>日记页面 - 开发中</div>
             </NavbarLayout>
           } />
-          <Route path="/story" element={
+          <Route path="/timeline" element={
             <NavbarLayout>
-              <div style={{ paddingTop: '80px', textAlign: 'center' }}>我们的故事页面 - 开发中</div>
+              <Timeline />
             </NavbarLayout>
           } />
           <Route path="*" element={

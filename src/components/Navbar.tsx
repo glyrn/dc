@@ -217,7 +217,7 @@ const Navbar: React.FC = () => {
             <MenuItem to="/diary" isActive={location.pathname === '/diary'}>日记</MenuItem>
           </NavLink>
           <NavLink>
-            <MenuItem to="/story" isActive={location.pathname === '/story'}>我们的故事</MenuItem>
+            <MenuItem to="/timeline" isActive={location.pathname === '/timeline'}>时间轴</MenuItem>
           </NavLink>
           <NavLink>
             <MenuItem to="/upload" isActive={location.pathname === '/upload'}>上传</MenuItem>
