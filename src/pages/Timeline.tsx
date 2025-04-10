@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
-import timelineData from '../timeline-data.json'; // 导入时间轴数据
+// import timelineData from '../timeline-data.json'; // 移除本地数据导入
 import { motion, useAnimation } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 
@@ -360,107 +360,134 @@ const YearLabel = styled(motion.div)`
   }
 `;
 
-// 主组件
+const LoadingSpinner = styled.div`
+  // 这里可以添加一个加载动画的样式
+  text-align: center;
+  padding: 50px;
+  font-size: 1.5em;
+  color: var(--accent-color, #6c5ce7);
+`;
+
+const ErrorMessage = styled.div`
+  // 错误信息的样式
+  text-align: center;
+  padding: 50px;
+  font-size: 1.2em;
+  color: red;
+  background-color: #ffebee;
+  border: 1px solid red;
+  border-radius: 8px;
+  margin: 20px;
+`;
+
+// 定义时间轴条目的类型
+interface TimelineItemData {
+  date: string;
+  title: string;
+  description: string;
+}
+
+// 定义兜底用的假数据
+const mockTimelineData: TimelineItemData[] = [
+  {
+    "date": "2024-01-01",
+    "title": "假数据：新年快乐",
+    "description": "这是一个占位符事件，用于在 API 加载失败时显示。"
+  },
+  {
+    "date": "2023-12-25",
+    "title": "假数据：圣诞节",
+    "description": "另一个示例事件，展示时间轴的基本布局。"
+  },
+  {
+    "date": "未来",
+    "title": "假数据：未来的计划",
+    "description": "展望未来，这里可以放一些规划中的内容。"
+  }
+];
+
 const Timeline: React.FC = () => {
-  const controls = useAnimation();
-  const lineControls = useAnimation();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [titleRef, titleInView] = useInView({
-    triggerOnce: true,
-    threshold: 0.1
-  });
+  const [timelineData, setTimelineData] = useState<TimelineItemData[]>([]); // 状态存储 API 或假数据
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null); // 错误状态或提示
 
   useEffect(() => {
-    if (titleInView) {
-      controls.start({ 
-        opacity: 1, 
-        y: 0,
-        transition: { 
-          type: "spring", 
-          stiffness: 100,
-          damping: 15,
-          duration: 0.7 
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+
+      // 从环境变量获取 API 基础 URL，如果未定义则默认为空字符串 (相对路径)
+      const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || '';
+      // 如果环境变量未设置，可以在控制台给个提示
+      if (!process.env.REACT_APP_API_BASE_URL) {
+        console.warn(
+          'REACT_APP_API_BASE_URL is not defined. Using relative path for API calls.'
+        );
+      }
+      const apiUrl = `${apiBaseUrl}/api/timeline`;
+
+      try {
+        // 使用构建好的 apiUrl
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-      });
-      
-      // 标题显示后，开始线条动画
-      setTimeout(() => {
-        lineControls.start('visible');
-      }, 500);
-    }
-  }, [controls, lineControls, titleInView]);
+        const data = await response.json();
+        setTimelineData(data);
+      } catch (e) {
+        console.error(`Failed to fetch timeline data from ${apiUrl}, using mock data:`, e);
+        setError('无法加载实时数据，当前显示为离线示例。');
+        setTimelineData(mockTimelineData);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // 排序数据：按日期从新到旧排列
-  const sortedData = [...timelineData].sort((a, b) => {
-    if (a.date === '未来') return -1;
-    if (b.date === '未来') return 1;
-    return new Date(b.date).getTime() - new Date(a.date).getTime();
-  });
-  
-  // 以年份分组数据
-  const groupedByYear = sortedData.reduce((acc, item) => {
-    // 特殊处理"未来"
-    const year = item.date === '未来' ? '未来' : new Date(item.date).getFullYear().toString();
-    if (!acc[year]) {
-      acc[year] = [];
-    }
-    acc[year].push(item);
-    return acc;
-  }, {} as Record<string, typeof timelineData>);
-
-  // 将分组数据处理为平面列表，添加年份标签
-  const processedData: Array<{type: 'item'|'year', data: any}> = [];
-  Object.entries(groupedByYear).forEach(([year, items]) => {
-    processedData.push({type: 'year', data: year});
-    items.forEach(item => {
-      processedData.push({type: 'item', data: item});
-    });
-  });
+    fetchData();
+  }, []);
 
   return (
     <TimelineContainer ref={containerRef}>
-      
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="timeline-items-container"
+      <PageTitle
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
       >
-        {processedData.map((item, index) => {
-          if (item.type === 'year') {
-            return (
-              <YearLabel 
-                key={`year-${index}`}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                {item.data}年
-              </YearLabel>
-            );
-          } else {
-            return (
-              <TimelineItemWithScroll 
-                key={`item-${index}`} 
-                item={item.data} 
-                index={index} 
-                totalItems={processedData.length}
-                containerRef={containerRef as React.RefObject<HTMLDivElement>}
-              />
-            );
-          }
-        })}
-      </motion.div>
+        我们的时间轴
+      </PageTitle>
+
+      {/* 加载状态 */} 
+      {loading && <LoadingSpinner>加载中...</LoadingSpinner>}
+
+      {/* 错误/提示信息 (非加载状态下才显示) */} 
+      {!loading && error && <ErrorMessage>{error}</ErrorMessage>} 
+
+      {/* 时间轴内容 (非加载状态下，无论是否有错误都渲染数据) */} 
+      {!loading && timelineData.map((item, index) => (
+        <TimelineItemWithScroll 
+          key={index} 
+          item={item} 
+          index={index} 
+          totalItems={timelineData.length}
+          containerRef={containerRef}
+        />
+      ))}
+
+      {/* 可选：如果API成功但返回空数据，可以显示提示 */} 
+      {!loading && !error && timelineData.length === 0 && 
+        <ErrorMessage>暂无时间轴数据。</ErrorMessage>} 
+
     </TimelineContainer>
   );
 };
 
-// 修改参数类型定义
+// 更新 TimelineItemWithScroll 的 Props 接口
 interface TimelineItemWithScrollProps {
-  item: any;
+  item: TimelineItemData; // 使用定义的类型
   index: number;
   totalItems: number;
-  containerRef: React.RefObject<HTMLDivElement>;
+  containerRef: React.RefObject<HTMLDivElement | null>; // 允许 null
 }
 
 const TimelineItemWithScroll = ({ 

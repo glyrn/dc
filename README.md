@@ -93,3 +93,26 @@ your-project-root/
 ├── .dockerignore       # Docker 构建忽略文件
 └── README.md           # 本文档
 ```
+
+## API 文档
+
+### 获取时间轴数据
+
+* **URL:** `/api/timeline`
+* **Method:** `GET`
+* **成功响应:**
+    * **Code:** `200 OK`
+    * **Content:**
+      ```json
+      [
+        {
+          "date": "string",  // 例如 "2023-01-15" 或 "未来"
+          "title": "string",
+          "description": "string"
+        },
+        // ... more timeline items
+      ]
+      ```
+* **错误响应:**
+    * **Code:** `500 Internal Server Error`
+    * **Content:** `{ "error": "Error message description" }`
