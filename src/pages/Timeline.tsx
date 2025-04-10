@@ -419,13 +419,6 @@ const Timeline: React.FC = () => {
 
   return (
     <TimelineContainer ref={containerRef}>
-      <PageTitle 
-        ref={titleRef}
-        initial={{ opacity: 0, y: -30 }}
-        animate={controls}
-      >
-        记录每一个重要时刻
-      </PageTitle>
       
       <motion.div
         variants={containerVariants}
