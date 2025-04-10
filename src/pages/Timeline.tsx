@@ -430,14 +430,26 @@ const Label = styled.label`
 
 const Input = styled.input`
   padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
   font-size: 16px;
-  transition: border-color 0.3s ease;
+  transition: all 0.3s ease;
+  background-color: #f9f9f9;
 
   &:focus {
     outline: none;
-    border-color: var(--accent-color, #6c5ce7);
+    border-color: var(--accent-color-light, #a195e9);
+    box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.15);
+  }
+
+  &[type="date"] {
+    color: #555;
+    cursor: pointer;
+  }
+
+  &::-webkit-calendar-picker-indicator {
+    opacity: 0.6;
+    cursor: pointer;
   }
 `;
 
