@@ -677,13 +677,6 @@ const Timeline: React.FC = () => {
   return (
     <>
       <TimelineContainer ref={containerRef}>
-        <PageTitle
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-        >
-          我们的时间轴
-        </PageTitle>
 
         {/* 加载状态 */} 
         {loading && <LoadingSpinner>加载中...</LoadingSpinner>}
