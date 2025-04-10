@@ -679,7 +679,7 @@ const Timeline: React.FC = () => {
       <TimelineContainer ref={containerRef}>
 
         {/* 加载状态 */} 
-        {loading && <LoadingSpinner>加载中...</LoadingSpinner>}
+        {loading && <LoadingSpinner>玩命加载中...</LoadingSpinner>}
 
         {/* 错误/提示信息 (非加载状态下才显示) */} 
         {!loading && error && <ErrorMessage>{error}</ErrorMessage>} 
