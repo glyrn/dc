@@ -3,6 +3,9 @@ import styled from 'styled-components';
 // import timelineData from '../timeline-data.json'; // 移除本地数据导入
 import { motion, useAnimation } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
+import { FaPlus } from 'react-icons/fa';
+// 移除未使用的 IconType 导入
+// import { IconType } from 'react-icons';
 
 // 增强的页面标题组件
 const PageTitle = styled(motion.h1)`
@@ -297,45 +300,8 @@ const TimelineDescription = styled.p`
   }
 `;
 
-// 动画变体定义
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: { 
-    opacity: 1,
-    transition: { 
-      when: "beforeChildren",
-      staggerChildren: 0.3,
-      delayChildren: 0.2
-    }
-  }
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 50, scale: 0.9 },
-  visible: { 
-    opacity: 1, 
-    y: 0,
-    scale: 1,
-    transition: {
-      type: "spring",
-      stiffness: 80,
-      damping: 12
-    }
-  }
-};
-
-const lineVariants = {
-  hidden: { scaleY: 0 },
-  visible: { 
-    scaleY: 1,
-    transition: { 
-      duration: 1.5,
-      ease: "easeInOut"
-    }
-  }
-};
-
 // 年份标签组件，用于在时间轴上显示年份分组
+/*
 const YearLabel = styled(motion.div)`
   position: relative;
   left: 50%;
@@ -359,6 +325,7 @@ const YearLabel = styled(motion.div)`
     border-radius: 15px;
   }
 `;
+*/
 
 const LoadingSpinner = styled.div`
   // 这里可以添加一个加载动画的样式
@@ -378,6 +345,151 @@ const ErrorMessage = styled.div`
   border: 1px solid red;
   border-radius: 8px;
   margin: 20px;
+`;
+
+// 新增按钮样式
+const AddButton = styled(motion.button)`
+  position: fixed;
+  right: 30px;
+  bottom: 30px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--accent-color, #6c5ce7);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);
+  z-index: 1000;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(108, 92, 231, 0.4);
+  }
+
+  @media (max-width: 768px) {
+    width: 50px;
+    height: 50px;
+    right: 20px;
+    bottom: 20px;
+  }
+`;
+
+// 模态框背景
+const ModalOverlay = styled(motion.div)`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+  backdrop-filter: blur(5px);
+`;
+
+// 模态框容器
+const ModalContent = styled(motion.div)`
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  position: relative;
+
+  @media (max-width: 768px) {
+    padding: 20px;
+    width: 95%;
+  }
+`;
+
+// 表单样式
+const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+`;
+
+const FormGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const Label = styled.label`
+  font-weight: 600;
+  color: var(--text-color, #333);
+`;
+
+const Input = styled.input`
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border-color 0.3s ease;
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent-color, #6c5ce7);
+  }
+`;
+
+const TextArea = styled.textarea`
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  min-height: 100px;
+  resize: vertical;
+  transition: border-color 0.3s ease;
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent-color, #6c5ce7);
+  }
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+`;
+
+const Button = styled.button<{ variant?: 'primary' | 'secondary' }>`
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  ${props => props.variant === 'primary' ? `
+    background: var(--accent-color, #6c5ce7);
+    color: white;
+    &:hover {
+      background: #5c4ac7;
+    }
+  ` : `
+    background: #f5f5f5;
+    color: #666;
+    &:hover {
+      background: #e5e5e5;
+    }
+  `}
+`;
+
+const ErrorText = styled.div`
+  color: #ff4444;
+  font-size: 14px;
+  margin-top: 5px;
 `;
 
 // 定义时间轴条目的类型
@@ -406,11 +518,26 @@ const mockTimelineData: TimelineItemData[] = [
   }
 ];
 
+// 临时的类型化组件包装器
+const TypedFaPlus = FaPlus as React.FC<any>;
+
 const Timeline: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [timelineData, setTimelineData] = useState<TimelineItemData[]>([]); // 状态存储 API 或假数据
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null); // 错误状态或提示
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    date: '',
+    title: '',
+    description: ''
+  });
+  const [formErrors, setFormErrors] = useState({
+    date: '',
+    title: '',
+    description: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -447,47 +574,204 @@ const Timeline: React.FC = () => {
     fetchData();
   }, []);
 
+  const handleAddClick = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setFormData({ date: '', title: '', description: '' });
+    setFormErrors({ date: '', title: '', description: '' });
+  };
+
+  const validateForm = () => {
+    const errors = {
+      date: '',
+      title: '',
+      description: ''
+    };
+    let isValid = true;
+
+    if (!formData.date) {
+      errors.date = '请选择日期';
+      isValid = false;
+    }
+
+    if (!formData.title.trim()) {
+      errors.title = '请输入标题';
+      isValid = false;
+    }
+
+    if (!formData.description.trim()) {
+      errors.description = '请输入内容';
+      isValid = false;
+    }
+
+    setFormErrors(errors);
+    return isValid;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || '';
+      const response = await fetch(`${apiBaseUrl}/api/timeline`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error('添加失败');
+      }
+
+      const newItem = await response.json();
+      setTimelineData(prev => [newItem, ...prev]);
+      handleCloseModal();
+    } catch (error) {
+      console.error('Error adding timeline item:', error);
+      setFormErrors(prev => ({
+        ...prev,
+        submit: '添加失败，请稍后重试'
+      }));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    // 清除对应字段的错误信息
+    setFormErrors(prev => ({
+      ...prev,
+      [name]: ''
+    }));
+  };
+
   return (
-    <TimelineContainer ref={containerRef}>
-      <PageTitle
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
+    <>
+      <TimelineContainer ref={containerRef}>
+        <PageTitle
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+        >
+          我们的时间轴
+        </PageTitle>
+
+        {/* 加载状态 */} 
+        {loading && <LoadingSpinner>加载中...</LoadingSpinner>}
+
+        {/* 错误/提示信息 (非加载状态下才显示) */} 
+        {!loading && error && <ErrorMessage>{error}</ErrorMessage>} 
+
+        {/* 时间轴内容 (非加载状态下，无论是否有错误都渲染数据) */} 
+        {!loading && timelineData.map((item, index) => (
+          <TimelineItemWithScroll 
+            key={index} 
+            item={item} 
+            index={index} 
+            totalItems={timelineData.length}
+            containerRef={containerRef}
+          />
+        ))}
+
+        {/* 可选：如果API成功但返回空数据，可以显示提示 */} 
+        {!loading && !error && timelineData.length === 0 && 
+          <ErrorMessage>暂无时间轴数据。</ErrorMessage>} 
+      </TimelineContainer>
+
+      <AddButton
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={handleAddClick}
       >
-        我们的时间轴
-      </PageTitle>
+        <TypedFaPlus size={24} />
+      </AddButton>
 
-      {/* 加载状态 */} 
-      {loading && <LoadingSpinner>加载中...</LoadingSpinner>}
+      {isModalOpen && (
+        <ModalOverlay
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={handleCloseModal}
+        >
+          <ModalContent
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 50, opacity: 0 }}
+            onClick={e => e.stopPropagation()}
+          >
+            <h2 style={{ marginBottom: '20px' }}>添加新时刻</h2>
+            <Form onSubmit={handleSubmit}>
+              <FormGroup>
+                <Label>日期</Label>
+                <Input
+                  type="date"
+                  name="date"
+                  value={formData.date}
+                  onChange={handleInputChange}
+                />
+                {formErrors.date && <ErrorText>{formErrors.date}</ErrorText>}
+              </FormGroup>
 
-      {/* 错误/提示信息 (非加载状态下才显示) */} 
-      {!loading && error && <ErrorMessage>{error}</ErrorMessage>} 
+              <FormGroup>
+                <Label>标题</Label>
+                <Input
+                  type="text"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleInputChange}
+                  placeholder="输入标题"
+                />
+                {formErrors.title && <ErrorText>{formErrors.title}</ErrorText>}
+              </FormGroup>
 
-      {/* 时间轴内容 (非加载状态下，无论是否有错误都渲染数据) */} 
-      {!loading && timelineData.map((item, index) => (
-        <TimelineItemWithScroll 
-          key={index} 
-          item={item} 
-          index={index} 
-          totalItems={timelineData.length}
-          containerRef={containerRef}
-        />
-      ))}
+              <FormGroup>
+                <Label>内容</Label>
+                <TextArea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  placeholder="输入内容"
+                />
+                {formErrors.description && <ErrorText>{formErrors.description}</ErrorText>}
+              </FormGroup>
 
-      {/* 可选：如果API成功但返回空数据，可以显示提示 */} 
-      {!loading && !error && timelineData.length === 0 && 
-        <ErrorMessage>暂无时间轴数据。</ErrorMessage>} 
-
-    </TimelineContainer>
+              <ButtonGroup>
+                <Button type="button" onClick={handleCloseModal}>
+                  取消
+                </Button>
+                <Button type="submit" variant="primary" disabled={isSubmitting}>
+                  {isSubmitting ? '添加中...' : '添加'}
+                </Button>
+              </ButtonGroup>
+            </Form>
+          </ModalContent>
+        </ModalOverlay>
+      )}
+    </>
   );
 };
 
 // 更新 TimelineItemWithScroll 的 Props 接口
 interface TimelineItemWithScrollProps {
-  item: TimelineItemData; // 使用定义的类型
+  item: TimelineItemData;
   index: number;
   totalItems: number;
-  containerRef: React.RefObject<HTMLDivElement | null>; // 允许 null
+  containerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 const TimelineItemWithScroll = ({ 

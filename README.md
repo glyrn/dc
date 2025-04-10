@@ -116,3 +116,33 @@ your-project-root/
 * **错误响应:**
     * **Code:** `500 Internal Server Error`
     * **Content:** `{ "error": "Error message description" }`
+
+### 新增时间轴条目
+
+* **URL:** `/api/timeline`
+* **Method:** `POST`
+* **请求体 (Request Body):**
+    ```json
+    {
+      "date": "string",  // 格式: "YYYY-MM-DD" 或 "未来"
+      "title": "string",
+      "description": "string"
+    }
+    ```
+* **成功响应:**
+    * **Code:** `201 Created`
+    * **Content:** 
+      ```json
+      {
+        "id": "string",  // 新创建条目的唯一标识符
+        "date": "string",
+        "title": "string",
+        "description": "string",
+        "createdAt": "string"  // ISO 格式的时间戳
+      }
+      ```
+* **错误响应:**
+    * **Code:** `400 Bad Request`
+    * **Content:** `{ "error": "Invalid input data" }`
+    * **Code:** `500 Internal Server Error`
+    * **Content:** `{ "error": "Error message description" }`
