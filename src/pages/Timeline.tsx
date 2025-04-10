@@ -621,7 +621,9 @@ const Timeline: React.FC = () => {
     setIsSubmitting(true);
     try {
       const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || '';
-      const response = await fetch(`${apiBaseUrl}/api/timeline`, {
+      const apiUrl = `${apiBaseUrl}/api/timeline`;
+
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
