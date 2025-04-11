@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
@@ -44,6 +44,8 @@ const Logo = styled(Link)`
 const NavLinks = styled.div<{ isOpen: boolean }>`
   display: flex;
   gap: 2rem;
+  align-items: center;
+  position: relative;
 
   @media (max-width: 768px) {
     position: fixed;
@@ -161,7 +163,23 @@ const MenuItem = styled(Link)<{ isActive?: boolean }>`
   }
 `;
 
-// 用户身份标签
+// 用户身份标签容器 - PC端位于右侧
+const UserIdentityContainer = styled.div`
+  position: relative;
+
+  // PC端样式
+  margin-left: auto; // 将用户标签推到最右侧
+  order: 1; // 确保它在导航链接之后显示
+  
+  @media (max-width: 768px) {
+    // 移动端样式保持不变
+    margin-left: 0;
+    order: 0;
+    width: 100%;
+  }
+`;
+
+// 用户身份标签 - 修改为可点击的组件
 const UserIdentity = styled.div`
   display: flex;
   align-items: center;
@@ -169,9 +187,15 @@ const UserIdentity = styled.div`
   padding: 6px 12px;
   border-radius: 20px;
   background-color: #f5f5f7;
-  margin-left: 1rem;
   font-size: 0.85rem;
   color: #333;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background-color: #e5e5e7;
+  }
   
   @media (max-width: 768px) {
     margin: 0 0 1rem 0;
@@ -182,10 +206,40 @@ const IdentityDot = styled.span<{ identity: string }>`
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: ${props => props.identity === 'flisa' ? '#6c5ce7' : props.identity === 'goree' ? '#00b894' : '#b2bec3'};
+  background-color: ${props => 
+    props.identity === 'flisa' ? '#8519e3' : 
+    props.identity === 'goree' ? '#3fd7eb' : 
+    props.identity === 'green' ? '#3feb8f' : 
+    '#b2bec3'};
 `;
 
-// 注销按钮
+// 下拉菜单容器
+const DropdownMenu = styled.div<{ isOpen: boolean }>`
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 150px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 8px;
+  opacity: ${props => props.isOpen ? 1 : 0};
+  visibility: ${props => props.isOpen ? 'visible' : 'hidden'};
+  transform: ${props => props.isOpen ? 'translateY(0)' : 'translateY(-10px)'};
+  transition: all 0.2s ease;
+  z-index: 1100;
+  
+  @media (max-width: 768px) {
+    position: relative;
+    top: 8px;
+    left: 0;
+    right: auto;
+    width: 100%;
+    margin-top: 8px;
+  }
+`;
+
+// 注销按钮 - 修改样式，放入下拉菜单
 const LogoutButton = styled.button`
   background: none;
   border: none;
@@ -197,15 +251,11 @@ const LogoutButton = styled.button`
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  width: 100%;
+  text-align: left;
   
   &:hover {
     background-color: rgba(255, 107, 107, 0.1);
-    box-shadow: 0 0 10px rgba(255, 107, 107, 0.1);
-  }
-  
-  @media (max-width: 768px) {
-    margin-top: 2rem;
   }
 `;
 
@@ -215,6 +265,8 @@ const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [prevScrollPos, setPrevScrollPos] = useState(0);
   const [userIdentity, setUserIdentity] = useState<string | null>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -262,6 +314,26 @@ const Navbar: React.FC = () => {
     navigate('/');
   };
 
+  // 处理用户菜单的显示和隐藏
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // 切换下拉菜单
+  const toggleDropdown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsDropdownOpen(!isDropdownOpen);
+  };
+
   return (
     <>
       <NavContainer scrolled={scrolled} visible={visible}>
@@ -275,10 +347,21 @@ const Navbar: React.FC = () => {
         
         <NavLinks isOpen={isOpen}>
           {userIdentity && (
-            <UserIdentity>
-              <IdentityDot identity={userIdentity} />
-              {userIdentity === 'flisa' ? 'Flisa' : userIdentity === 'goree' ? 'Goree' : '访客'}
-            </UserIdentity>
+            <UserIdentityContainer ref={dropdownRef}>
+              <UserIdentity onClick={toggleDropdown}>
+                <IdentityDot identity={userIdentity} />
+                {userIdentity === 'flisa' ? 'Flisa' : 
+                 userIdentity === 'goree' ? 'Goree' : 
+                 userIdentity === 'green' ? 'Green' : 
+                 '访客'}
+              </UserIdentity>
+              
+              <DropdownMenu isOpen={isDropdownOpen}>
+                <LogoutButton onClick={handleLogout}>
+                  退出登录
+                </LogoutButton>
+              </DropdownMenu>
+            </UserIdentityContainer>
           )}
           
           <NavLink>
@@ -318,9 +401,7 @@ const Navbar: React.FC = () => {
             </MenuItem>
           </NavLink>
           
-          <LogoutButton onClick={handleLogout}>
-            退出登录
-          </LogoutButton>
+          {/* 移除这里的退出登录按钮，因为已经放入下拉菜单 */}
         </NavLinks>
       </NavContainer>
       <Overlay isOpen={isOpen} onClick={closeMenu} />
