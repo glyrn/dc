@@ -781,13 +781,13 @@ const Diary: React.FC = () => {
             <EmptyDiaryMessage>
               {isFutureDate ? (
                 <>
-                  <h3>这一天还没到，敬请期待</h3>
-                  <p>时间会带来美好的回忆</p>
+                  <h3>这一天还没到哦</h3>
+                  <p>敬请期待</p>
                 </>
               ) : (
                 <>
-                  <h3>{selectedDiary.date} 又又又忘记写啦</h3>
-                  <p>快补上吧</p>
+                  <h3>时间会带来美好的回忆</h3>
+                  <p>这一天忘记写啦 快补上吧 ~</p>
                 </>
               )}
             </EmptyDiaryMessage>
