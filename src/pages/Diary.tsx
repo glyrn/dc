@@ -760,7 +760,7 @@ const Diary: React.FC = () => {
         <div>
           {isEmpty ? (
             <EmptyDiaryMessage>
-              <h3>{selectedDiary.date} 又又又忘记记录啦</h3>
+              <h3>{selectedDiary.date} 又又又忘记写啦</h3>
               <p>快补上吧</p>
             </EmptyDiaryMessage>
           ) : (
