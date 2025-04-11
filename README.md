@@ -471,3 +471,38 @@ API 基础路径: `[REACT_APP_API_BASE_URL]` (例如: `https://api.love.goree.te
 - **失败响应:**
   - `401 Unauthorized`: Token 缺失、无效或过期。
   - `500 Internal Server Error`: 服务器内部错误。
+
+
+### 3. 删除悄悄话
+
+- **Endpoint:** `DELETE /api/whispers/{whisper_id}`
+- **描述:** 允许已认证用户删除指定 ID 的悄悄话。
+- **路径参数 (Path Parameters):**
+  - `whisper_id` (integer, 必需): 要删除的悄悄话的唯一 ID。
+- **认证:** 需要有效的 `Authorization: Bearer <token>` 请求头。
+- **成功响应 (204 No Content):**
+  - 无响应体内容，表示删除成功。
+- **失败响应:**
+  - `401 Unauthorized`: Token 缺失、无效或过期。
+    ```json
+    { "error": "需要认证" }
+    // 或
+    { "error": "Token已过期" }
+    ```
+  - `404 Not Found`: 指定 ID 的悄悄话不存在。
+    ```json
+    { "error": "Whisper not found" }
+    ```
+  - `422 Unprocessable Entity`: 路径参数 `whisper_id` 无效 (例如，不是整数)。
+    ```json
+    {
+      "detail": [
+        {
+          "loc": ["path", "whisper_id"],
+          "msg": "value is not a valid integer",
+          "type": "type_error.integer"
+        }
+      ]
+    }
+    ```
+  - `500 Internal Server Error`: 服务器内部错误。

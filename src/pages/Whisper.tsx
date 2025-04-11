@@ -234,6 +234,12 @@ const WhisperPage: React.FC = () => {
     }
   };
   
+  // 处理悄悄话删除
+  const handleWhisperDeleted = (whisperId: string) => {
+    // 从状态中移除已删除的悄悄话
+    setWhispers(prevWhispers => prevWhispers.filter(w => w.id !== whisperId));
+  };
+  
   return (
     <PageContainer
       initial={{ opacity: 0 }}
@@ -260,7 +266,10 @@ const WhisperPage: React.FC = () => {
           ) : whispers.length === 0 ? (
             <EmptyState>还没有任何悄悄话，快来留下第一个吧！</EmptyState>
           ) : (
-            <WhisperBubbles whispers={whispers} />
+            <WhisperBubbles 
+              whispers={whispers} 
+              onWhisperDeleted={handleWhisperDeleted}
+            />
           )}
         </WhispersContainer>
       </ContentContainer>

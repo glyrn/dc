@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Whisper, formatWhisperTime } from '../services/whisperService';
+import { Whisper, formatWhisperTime, deleteWhisper } from '../services/whisperService';
 
 // 浮动动画
 const float = keyframes`
@@ -360,9 +360,10 @@ const calculateMaxBubbles = (
 
 interface WhisperBubblesProps {
   whispers: Whisper[];
+  onWhisperDeleted?: (whisperId: string) => void;
 }
 
-const WhisperBubbles: React.FC<WhisperBubblesProps> = ({ whispers }) => {
+const WhisperBubbles: React.FC<WhisperBubblesProps> = ({ whispers, onWhisperDeleted }) => {
   const [selectedWhisper, setSelectedWhisper] = useState<Whisper | null>(null);
   const [bubblePositions, setBubblePositions] = useState<Array<{
     left: number;
@@ -372,6 +373,7 @@ const WhisperBubbles: React.FC<WhisperBubblesProps> = ({ whispers }) => {
   const [visibleWhispers, setVisibleWhispers] = useState<Whisper[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // 检测移动设备
   useEffect(() => {
@@ -436,9 +438,35 @@ const WhisperBubbles: React.FC<WhisperBubblesProps> = ({ whispers }) => {
     setSelectedWhisper(whisper);
   };
   
-  // 关闭消息弹窗
-  const closeModal = () => {
-    setSelectedWhisper(null);
+  // 关闭消息弹窗并删除悄悄话
+  const closeModal = async () => {
+    if (selectedWhisper && !isDeleting) {
+      try {
+        setIsDeleting(true);
+        
+        // 删除悄悄话
+        await deleteWhisper(selectedWhisper.id);
+        
+        // 通知父组件删除成功
+        if (onWhisperDeleted) {
+          onWhisperDeleted(selectedWhisper.id);
+        }
+        
+        // 从本地状态移除该悄悄话
+        setVisibleWhispers(prev => prev.filter(w => w.id !== selectedWhisper.id));
+        
+        // 关闭弹窗
+        setSelectedWhisper(null);
+      } catch (error) {
+        console.error('删除悄悄话失败:', error);
+        // 即使删除失败，也关闭弹窗
+        setSelectedWhisper(null);
+      } finally {
+        setIsDeleting(false);
+      }
+    } else {
+      setSelectedWhisper(null);
+    }
   };
   
   return (

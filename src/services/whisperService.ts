@@ -59,6 +59,27 @@ export const sendWhisper = async (message: string): Promise<Whisper> => {
   return await response.json();
 };
 
+// 删除悄悄话
+export const deleteWhisper = async (whisperId: string): Promise<void> => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error('用户未登录');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/whispers/${whisperId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || '删除悄悄话失败');
+  }
+};
+
 // 格式化时间戳为友好格式
 export const formatWhisperTime = (timestamp: string): string => {
   const date = new Date(timestamp);
