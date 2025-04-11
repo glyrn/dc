@@ -306,9 +306,28 @@ const Welcome: React.FC = () => {
     setIsLoading(true);
     setError('');
     
+    // 从环境变量获取 API 基础 URL
+    const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || '';
+    // 如果环境变量未设置，在控制台给出提示并阻止执行
+    if (!apiBaseUrl) {
+      console.error(
+        'REACT_APP_API_BASE_URL is not defined. Cannot make API calls.'
+      );
+      setError('API 配置错误，无法登录');
+      setIsLoading(false);
+      return;
+    }
+    
+    // 确保 API_BASE_URL 末尾没有斜杠
+    const cleanApiBaseUrl = apiBaseUrl.endsWith('/')
+      ? apiBaseUrl.slice(0, -1)
+      : apiBaseUrl;
+    
+    const loginUrl = `${cleanApiBaseUrl}/api/login`;
+    
     try {
       // 调用登录API
-      const response = await fetch('/api/login', {
+      const response = await fetch(loginUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
