@@ -172,10 +172,13 @@ const UserIdentityContainer = styled.div`
   order: 1; // 确保它在导航链接之后显示
   
   @media (max-width: 768px) {
-    // 移动端样式保持不变
-    margin-left: 0;
+    // 移动端样式
+    margin: 0 auto 1rem auto; // 上右下左边距，使其水平居中
     order: 0;
-    width: 100%;
+    width: auto;
+    align-self: center; // 居中对齐
+    display: flex;
+    justify-content: center; // 内容居中
   }
 `;
 
@@ -198,7 +201,15 @@ const UserIdentity = styled.div`
   }
   
   @media (max-width: 768px) {
-    margin: 0 0 1rem 0;
+    margin: 0; // 移除边距，由容器控制
+    padding: 5px 10px;
+    min-width: 100px; // 设置最小宽度
+    max-width: 150px;
+    text-align: center; // 文本居中
+    justify-content: center; // 内容居中
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 `;
 
@@ -230,12 +241,12 @@ const DropdownMenu = styled.div<{ isOpen: boolean }>`
   z-index: 1100;
   
   @media (max-width: 768px) {
-    position: relative;
-    top: 8px;
-    left: 0;
-    right: auto;
-    width: 100%;
-    margin-top: 8px;
+    position: absolute;
+    top: 100%; // 紧贴标签底部
+    left: 50%; // 从中间开始
+    transform: ${props => props.isOpen ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(-10px)'};
+    width: 120px;
+    margin-top: 5px; // 稍微增加一点间距
   }
 `;
 
