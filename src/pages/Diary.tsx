@@ -204,6 +204,14 @@ const MoodTag = styled.div<{ mood: string }>`
         return 'background-color: #FFF3E0; color: #E65100;';
       case 'excited':
         return 'background-color: #F3E5F5; color: #6A1B9A;';
+      case 'calm':
+        return 'background-color: #CFD8DC; color: #37474F;';
+      case 'tired':
+        return 'background-color: #FFF9C4; color: #F57F17;';
+      case 'sad':
+        return 'background-color: #D1C4E9; color: #4527A0;';
+      case 'neutral':
+        return 'background-color: #ECEFF1; color: #455A64;';
       default:
         return 'background-color: #ECEFF1; color: #455A64;';
     }
@@ -229,6 +237,14 @@ const MoodTag = styled.div<{ mood: string }>`
           return 'background-color: #E65100;';
         case 'excited':
           return 'background-color: #6A1B9A;';
+        case 'calm':
+          return 'background-color: #37474F;';
+        case 'tired':
+          return 'background-color: #F57F17;';
+        case 'sad':
+          return 'background-color: #4527A0;';
+        case 'neutral':
+          return 'background-color: #455A64;';
         default:
           return 'background-color: #455A64;';
       }
@@ -697,6 +713,10 @@ const Diary: React.FC = () => {
       reflective: '沉思',
       accomplished: '成就感',
       excited: '兴奋',
+      calm: '平静',
+      tired: '疲惫',
+      sad: '失落',
+      neutral: '一般'
     };
     return labels[mood] || mood;
   };
