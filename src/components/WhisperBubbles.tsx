@@ -174,6 +174,39 @@ const MessageTime = styled.div`
   }
 `;
 
+// 阅后即焚标签
+const EphemeralLabel = styled.div`
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, #ff9a9e 0%, #fad0c4 100%);
+  color: white;
+  font-size: 0.85rem;
+  padding: 5px 15px;
+  border-radius: 30px;
+  box-shadow: 0 3px 10px rgba(255, 154, 158, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  min-width: 100px;
+  
+  @media (max-width: 768px) {
+    font-size: 0.75rem;
+    padding: 4px 12px;
+    min-width: 90px;
+  }
+`;
+
+// 火焰图标样式
+const FlameIcon = styled.span`
+  font-size: 0.9rem;
+`;
+
 // 关闭按钮
 const CloseButton = styled.button`
   position: absolute;
@@ -517,6 +550,9 @@ const WhisperBubbles: React.FC<WhisperBubblesProps> = ({ whispers, onWhisperDele
               exit={{ scale: 0.8, opacity: 0 }}
               onClick={e => e.stopPropagation()}
             >
+              <EphemeralLabel>
+                <FlameIcon>🔥</FlameIcon>阅后即焚
+              </EphemeralLabel>
               <CloseButton onClick={closeModal}>&times;</CloseButton>
               <MessageText>{selectedWhisper.message}</MessageText>
               <MessageTime>{formatWhisperTime(selectedWhisper.timestamp)}</MessageTime>

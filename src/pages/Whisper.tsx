@@ -275,7 +275,7 @@ const WhisperPage: React.FC = () => {
       </ContentContainer>
       
       <FooterText>
-        点击彩色泡泡，查看神秘留言 ✨
+        点击彩色泡泡，查看神秘留言 ✨ 每条消息仅能查看一次，阅后即焚
       </FooterText>
       
       {/* 悄悄话输入框 */}
