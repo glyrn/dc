@@ -241,14 +241,14 @@ const WhisperPage: React.FC = () => {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <Title>悄悄话</Title>
       
       <ContentContainer>
         {isAccessLogsLoading ? (
           <LoadingContainer>加载中...</LoadingContainer>
         ) : accessLogsError ? (
           <ErrorContainer>{accessLogsError}</ErrorContainer>
-        ) : (
+          ) : (
+              
           <VisitNotification messages={notificationMessages} />
         )}
         
