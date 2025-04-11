@@ -18,6 +18,7 @@ import { FaRegMeh } from 'react-icons/fa';
 import { FaBed } from 'react-icons/fa';
 import { FaSadTear } from 'react-icons/fa';
 import { FaMeh } from 'react-icons/fa';
+import { FaHistory } from 'react-icons/fa';
 import DiaryFormModal from '../components/DiaryFormModal';
 import { useLocation } from 'react-router-dom';
 
@@ -311,6 +312,7 @@ const TypedFaRegMeh = FaRegMeh as React.FC<any>;
 const TypedFaBed = FaBed as React.FC<any>;
 const TypedFaSadTear = FaSadTear as React.FC<any>;
 const TypedFaMeh = FaMeh as React.FC<any>;
+const TypedFaHistory = FaHistory as React.FC<any>;
 
 // 获取某月的天数
 const getDaysInMonth = (year: number, month: number) => {
@@ -455,6 +457,25 @@ const FloatingActionButton = styled.button`
   }
 `;
 
+// 添加一个从时间轴跳转来的提示组件
+const TimelineSourceIndicator = styled(motion.div)`
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  padding: 10px 15px;
+  background-color: #f0e6ff;
+  border-left: 4px solid var(--accent-color, #6c5ce7);
+  border-radius: 6px;
+  color: var(--accent-color, #6c5ce7);
+  font-size: 0.95rem;
+  box-shadow: 0 2px 8px rgba(108, 92, 231, 0.15);
+  
+  svg {
+    margin-right: 8px;
+    font-size: 1.1rem;
+  }
+`;
+
 // 日记组件
 const Diary: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -470,6 +491,9 @@ const Diary: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCheckingTodayEntry, setIsCheckingTodayEntry] = useState(false);
   const [todayHasEntry, setTodayHasEntry] = useState<boolean | null>(null);
+  // 添加从时间轴跳转的状态
+  const [isFromTimeline, setIsFromTimeline] = useState(false);
+  const [timelineSourceDate, setTimelineSourceDate] = useState<string>('');
   
   // 获取location，用于接收来自Timeline的日期参数
   const location = useLocation();
@@ -810,9 +834,7 @@ const Diary: React.FC = () => {
 
     // We should not render anything if selectedDiary is null initially
     if (!selectedDiary) {
-        // This case should ideally not happen often with the bug fix,
-        // but good to handle it gracefully.
-        return null; // Or return <p>请先在日历中选择一个日期。</p>;
+        return null;
     }
 
     // Calculate isEmpty and isFutureDate *after* confirming selectedDiary is not null
@@ -824,6 +846,22 @@ const Diary: React.FC = () => {
 
     return (
         <div>
+          {/* 添加从时间轴来源的视觉提示 */}
+          {isFromTimeline && timelineSourceDate && (
+            <TimelineSourceIndicator
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ 
+                type: "spring", 
+                stiffness: 500, 
+                damping: 30 
+              }}
+            >
+              <TypedFaHistory /> 
+              <span>这是来自时间轴「{timelineSourceDate}」的回忆</span>
+            </TimelineSourceIndicator>
+          )}
+        
           {isEmpty ? (
             <EmptyDiaryMessage>
               {isFutureDate ? (
@@ -839,7 +877,24 @@ const Diary: React.FC = () => {
               )}
             </EmptyDiaryMessage>
           ) : (
-            <DiaryDetailView>
+            <DiaryDetailView
+              initial={{ opacity: 0 }}
+              animate={{ 
+                opacity: 1,
+                boxShadow: isFromTimeline ? 
+                  ["0 10px 30px rgba(0, 0, 0, 0.1)", "0 0 0 4px rgba(108, 92, 231, 0.4)", "0 10px 30px rgba(0, 0, 0, 0.1)"] : 
+                  "0 10px 30px rgba(0, 0, 0, 0.1)" 
+              }}
+              transition={{ 
+                opacity: { duration: 0.5 },
+                boxShadow: { 
+                  duration: 1.5, 
+                  repeat: 0,
+                  repeatType: "mirror",
+                  ease: "easeInOut" 
+                }
+              }}
+            >
               <DiaryHeader>
                 <DiaryTitle>{selectedDiary.title}</DiaryTitle>
                 <DiaryDate>{selectedDiary.date}</DiaryDate>
@@ -898,6 +953,17 @@ const Diary: React.FC = () => {
     // 检查location.state是否包含日期信息
     if (location.state && location.state.year && location.state.month !== undefined && location.state.day) {
       const { year, month, day } = location.state;
+      
+      // 标记为从时间轴跳转来的访问
+      setIsFromTimeline(true);
+      
+      // 保存日期字符串用于显示
+      const dateObj = new Date(year, month, day);
+      setTimelineSourceDate(dateObj.toLocaleDateString('zh-CN', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }));
       
       // 更新当前显示的月份（如果不同）
       if (currentYear !== year || currentMonth !== month) {
@@ -965,6 +1031,15 @@ const Diary: React.FC = () => {
       }
     }
   }, [location.state, daysWithEntries, isLoading, currentYear, currentMonth]);
+  
+  // 添加重置时间轴来源状态的效果
+  useEffect(() => {
+    // 当用户手动切换月份或点击日历中的其他日期时，重置timeline跳转状态
+    if (view === 'calendar') {
+      setIsFromTimeline(false);
+      setTimelineSourceDate('');
+    }
+  }, [currentDate, view]);
   
   return (
     <DiaryContainer>
