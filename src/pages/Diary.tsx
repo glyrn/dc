@@ -466,6 +466,7 @@ const Diary: React.FC = () => {
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [dateForModal, setDateForModal] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingTodayEntry, setIsCheckingTodayEntry] = useState(false);
 
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
@@ -753,25 +754,27 @@ const Diary: React.FC = () => {
     }
   };
 
-  // Modified renderDiaryDetail to include Edit button
+  // Modified renderDiaryDetail to include Edit button and hide Add button for future dates
   const renderDiaryDetail = () => {
     if (isDetailLoading) {
       return renderLoading();
     }
-    
+
     if (error) {
       return renderError();
     }
-    
+
+    // We should not render anything if selectedDiary is null initially
     if (!selectedDiary) {
-      return null;
+        // This case should ideally not happen often with the bug fix,
+        // but good to handle it gracefully.
+        return null; // Or return <p>请先在日历中选择一个日期。</p>;
     }
 
+    // Calculate isEmpty and isFutureDate *after* confirming selectedDiary is not null
     const isEmpty = (selectedDiary as any).isEmpty;
-    
-    // 判断所选日期是否在未来
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // 重置时间部分，只比较日期
+    today.setHours(0, 0, 0, 0); // Reset time part for date comparison
     const diaryDate = new Date(selectedDiary.date);
     const isFutureDate = diaryDate > today;
 
@@ -805,11 +808,13 @@ const Diary: React.FC = () => {
             </DiaryDetailView>
           )}
           <DetailActions>
+              {/* Only show Add button if it's empty AND not a future date */}
               {isEmpty && !isFutureDate && (
                   <ActionButton onClick={() => openCreateModal(selectedDiary.date)}>
                       <TypedFaPlus /> 写新日记
                   </ActionButton>
               )}
+              {/* Show Edit button only if it's not empty */}
               {!isEmpty && (
                   <ActionButton onClick={() => openEditModal(selectedDiary)}>
                       <TypedFaEdit /> 编辑
@@ -820,16 +825,39 @@ const Diary: React.FC = () => {
       );
   };
 
+  // New handler for the Floating Action Button
+  const handleFabClick = async () => {
+    setIsCheckingTodayEntry(true);
+    const today = new Date();
+    const todayDateStr = formatDate(today.getFullYear(), today.getMonth(), today.getDate());
+    setError(null);
+
+    try {
+      const entry = await diaryService.getDiaryEntry(todayDateStr);
+      if (entry) {
+        openEditModal(entry as DiaryEntry);
+      } else {
+        openCreateModal(todayDateStr);
+      }
+    } catch (err) {
+      console.error("Error checking/fetching today's diary entry:", err);
+      setError("检查今日日记时出错，请稍后重试。");
+    } finally {
+      setIsCheckingTodayEntry(false);
+    }
+  };
+
   return (
     <DiaryContainer>
 
-      {/* 使用 FloatingActionButton 替换 AddDiaryButton */}
+      {/* Floating Action Button - updated onClick */}
       {view === 'calendar' && (
-        <FloatingActionButton 
-          onClick={() => openCreateModal(formatDate(currentYear, currentMonth, new Date().getDate()))}
-          aria-label="写今日日记"
+        <FloatingActionButton
+          onClick={handleFabClick}
+          aria-label="写或编辑今日日记"
+          disabled={isCheckingTodayEntry}
         >
-          <TypedFaPlus />
+          {isCheckingTodayEntry ? <TypedFaSpinner className="spin-animation" /> : <TypedFaPlus />}
         </FloatingActionButton>
       )}
 
@@ -884,6 +912,17 @@ const Diary: React.FC = () => {
         date={dateForModal}
         isLoading={isSubmitting}
       />
+
+      {/* Optional: Add CSS for spin animation if using spinner */}
+      <style>{`
+        .spin-animation {
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
 
     </DiaryContainer>
   );
