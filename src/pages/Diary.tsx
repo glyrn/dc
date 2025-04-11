@@ -507,10 +507,26 @@ const Diary: React.FC = () => {
           setSelectedDiary(entry as DiaryEntry);
         } else {
           setError('无法加载日记详情。');
+          setSelectedDiary({
+            date: dateStr,
+            title: '加载失败',
+            content: '',
+            mood: 'neutral',
+            isEmpty: true
+          } as DiaryEntry);
         }
       } catch (err) {
         setError('加载日记详情时出错，请稍后重试。');
         console.error(err);
+        setSelectedDiary({
+          date: dateStr,
+          title: '加载出错',
+          content: '',
+          mood: 'neutral',
+          isEmpty: true
+        } as DiaryEntry);
+      } finally {
+        setIsDetailLoading(false);
       }
     } else {
       setSelectedDiary({
@@ -520,9 +536,8 @@ const Diary: React.FC = () => {
         mood: 'neutral',
         isEmpty: true
       } as DiaryEntry);
+      setIsDetailLoading(false);
     }
-
-    setIsDetailLoading(false);
   };
 
   // Functions to open the modal
@@ -749,7 +764,7 @@ const Diary: React.FC = () => {
     }
     
     if (!selectedDiary) {
-      return <p>请选择一个日期。</p>;
+      return null;
     }
 
     const isEmpty = (selectedDiary as any).isEmpty;
@@ -790,11 +805,12 @@ const Diary: React.FC = () => {
             </DiaryDetailView>
           )}
           <DetailActions>
-              {isEmpty ? (
+              {isEmpty && !isFutureDate && (
                   <ActionButton onClick={() => openCreateModal(selectedDiary.date)}>
                       <TypedFaPlus /> 写新日记
                   </ActionButton>
-              ) : (
+              )}
+              {!isEmpty && (
                   <ActionButton onClick={() => openEditModal(selectedDiary)}>
                       <TypedFaEdit /> 编辑
                   </ActionButton>
