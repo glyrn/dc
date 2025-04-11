@@ -1,19 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { getAccessLogs, formatTimeAgo, countTodayVisits } from '../services/accessLogService';
-import Danmaku, { DanmakuMessage } from '../components/Danmaku';
+import { getAccessLogs, formatTimeAgo } from '../services/accessLogService';
+import { getAllWhispers, sendWhisper } from '../services/whisperService';
+import type { Whisper as WhisperType } from '../services/whisperService';
+import VisitNotification, { NotificationMessage } from '../components/VisitNotification';
+import WhisperBubbles from '../components/WhisperBubbles';
+import WhisperInput from '../components/WhisperInput';
 
 // 页面容器
 const PageContainer = styled(motion.div)`
-  padding: 80px 20px 20px;
+  padding: 80px 20px 100px; // 增加底部padding，为固定的输入框留出空间
   max-width: 1200px;
   margin: 0 auto;
   min-height: 100vh;
   background-color: var(--background-color);
   
   @media (max-width: 768px) {
-    padding: 75px 15px 20px;
+    padding: 75px 15px 100px;
   }
 `;
 
@@ -46,59 +50,64 @@ const ContentContainer = styled.div`
   margin-bottom: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   position: relative;
-  overflow: hidden;
-  min-height: 500px;
+`;
+
+// 内容分割线
+const Divider = styled.div`
+  height: 1px;
+  background-color: #eee;
+  margin: 20px 0;
+`;
+
+// 区域标题
+const SectionTitle = styled.h2`
+  font-size: 1.3rem;
+  color: var(--text-color);
+  margin-bottom: 15px;
+  font-weight: 500;
+`;
+
+// 悄悄话区域
+const WhispersContainer = styled.div`
+  margin-top: 30px;
+  min-height: 200px;
+`;
+
+// 加载提示
+const LoadingContainer = styled.div`
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  text-align: center;
+  align-items: center;
+  min-height: 200px;
+  color: #999;
 `;
 
-// 访问统计卡片
-const StatsCard = styled.div`
-  background-color: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  margin-top: 20px;
-  
-  h2 {
-    font-size: 1.2rem;
-    margin-bottom: 15px;
-    font-weight: 600;
-    color: var(--secondary-color);
-  }
-`;
-
-// 访问记录项
-const VisitItem = styled.div`
+// 错误提示
+const ErrorContainer = styled.div`
   display: flex;
-  justify-content: space-between;
-  padding: 10px 0;
-  border-bottom: 1px solid #f5f5f7;
-  
-  &:last-child {
-    border-bottom: none;
-  }
-  
-  span.name {
-    font-weight: 500;
-    color: var(--secondary-color);
-  }
-  
-  span.count {
-    font-weight: 600;
-    color: var(--accent-color);
-  }
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  color: #e53e3e;
+  text-align: center;
+  padding: 0 20px;
 `;
 
-// 无记录显示
-const NoDataMessage = styled.div`
-  padding: 40px;
-  color: #888;
+// 底部说明文字
+const FooterText = styled.div`
+  text-align: center;
+  margin-top: 20px;
+  font-size: 0.9rem;
+  color: #999;
+  padding: 0 20px;
+`;
+
+// 空状态提示
+const EmptyState = styled.div`
+  text-align: center;
+  padding: 30px 0;
+  color: #999;
   font-size: 1rem;
-  font-style: italic;
 `;
 
 // 用户名称转换函数
@@ -113,63 +122,107 @@ const formatIdentity = (identity: string): string => {
   }
 };
 
-const Whisper: React.FC = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [accessLogs, setAccessLogs] = useState<any[]>([]);
-  const [danmakuMessages, setDanmakuMessages] = useState<DanmakuMessage[]>([]);
+// 生成随机颜色
+const getRandomColor = (): string => {
+  const colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'];
+  return colors[Math.floor(Math.random() * colors.length)];
+};
+
+const WhisperPage: React.FC = () => {
+  const [isAccessLogsLoading, setIsAccessLogsLoading] = useState(true);
+  const [isWhispersLoading, setIsWhispersLoading] = useState(true);
+  const [isSending, setIsSending] = useState(false);
+  const [accessLogsError, setAccessLogsError] = useState<string | null>(null);
+  const [whispersError, setWhispersError] = useState<string | null>(null);
+  const [notificationMessages, setNotificationMessages] = useState<NotificationMessage[]>([]);
+  const [whispers, setWhispers] = useState<WhisperType[]>([]);
   
   useEffect(() => {
     fetchAccessLogs();
+    fetchWhispers();
   }, []);
   
   // 获取访问日志
   const fetchAccessLogs = async () => {
     try {
-      setIsLoading(true);
+      setIsAccessLogsLoading(true);
+      setAccessLogsError(null);
       
       // 获取过去7天的访问记录
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       
       const logs = await getAccessLogs(sevenDaysAgo.toISOString());
-      setAccessLogs(logs);
       
-      // 转换日志为弹幕消息
-      const messages: DanmakuMessage[] = logs.map(log => {
-        const userName = formatIdentity(log.identity);
-        const timeAgo = formatTimeAgo(log.timestamp);
-        
-        return {
-          id: `${log.identity}-${log.timestamp}`,
-          content: `${userName} ${timeAgo}来看过~`,
-        };
-      });
+      // 按时间排序，最近的排在前面
+      const sortedLogs = [...logs].sort((a, b) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
       
-      // 添加今日访问次数消息
-      const todayCounts = countTodayVisits(logs);
-      Object.keys(todayCounts).forEach(identity => {
-        const count = todayCounts[identity];
-        if (count > 1) {  // 只显示多次访问的用户
-          messages.push({
-            id: `today-${identity}`,
-            content: `${formatIdentity(identity)} 今天已经来过 ${count} 次啦！`,
-            color: '#e53e3e',  // 使用红色
-          });
+      // 为每个用户只保留最近一次访问记录
+      const uniqueIdentityLogs = sortedLogs.reduce<Record<string, any>>((acc, log) => {
+        if (!acc[log.identity]) {
+          acc[log.identity] = log;
         }
-      });
+        return acc;
+      }, {});
       
-      setDanmakuMessages(messages);
+      // 转换为通知消息
+      const messages: NotificationMessage[] = Object.values(uniqueIdentityLogs)
+        .filter(log => log && log.identity && log.timestamp) // 确保log对象有效
+        .map((log: any) => {
+          const userName = formatIdentity(log.identity);
+          const timeAgo = formatTimeAgo(log.timestamp);
+          
+          return {
+            id: `${log.identity}-${log.timestamp}`,
+            content: `${userName} ${timeAgo}来过`,
+            color: getRandomColor()
+          };
+        });
+      
+      setNotificationMessages(messages);
     } catch (err) {
-      setError('获取访问记录失败，请稍后再试');
+      setAccessLogsError('获取访问记录失败，请稍后再试');
       console.error('获取访问日志失败:', err);
     } finally {
-      setIsLoading(false);
+      setIsAccessLogsLoading(false);
     }
   };
   
-  // 计算今天的访问统计
-  const todayVisits = countTodayVisits(accessLogs);
+  // 获取悄悄话
+  const fetchWhispers = async () => {
+    try {
+      setIsWhispersLoading(true);
+      setWhispersError(null);
+      
+      const fetchedWhispers = await getAllWhispers();
+      setWhispers(fetchedWhispers);
+    } catch (err) {
+      setWhispersError('获取悄悄话失败，请稍后再试');
+      console.error('获取悄悄话失败:', err);
+    } finally {
+      setIsWhispersLoading(false);
+    }
+  };
+  
+  // 发送悄悄话
+  const handleSendWhisper = async (message: string) => {
+    try {
+      setIsSending(true);
+      
+      // 发送悄悄话
+      const newWhisper = await sendWhisper(message);
+      
+      // 更新悄悄话列表
+      setWhispers(prevWhispers => [newWhisper, ...prevWhispers]);
+    } catch (err) {
+      console.error('发送悄悄话失败:', err);
+      alert('发送失败，请稍后再试');
+    } finally {
+      setIsSending(false);
+    }
+  };
   
   return (
     <PageContainer
@@ -181,35 +234,39 @@ const Whisper: React.FC = () => {
       <Title>悄悄话</Title>
       
       <ContentContainer>
-        {isLoading ? (
-          <div>加载中...</div>
-        ) : error ? (
-          <div>{error}</div>
-        ) : danmakuMessages.length > 0 ? (
-          <>
-            <Danmaku messages={danmakuMessages} />
-            <div style={{ marginTop: '20px', opacity: 0.6, fontSize: '14px' }}>
-              ✨ 这里显示了最近来访的小伙伴 ✨
-            </div>
-          </>
+        {isAccessLogsLoading ? (
+          <LoadingContainer>加载中...</LoadingContainer>
+        ) : accessLogsError ? (
+          <ErrorContainer>{accessLogsError}</ErrorContainer>
         ) : (
-          <NoDataMessage>暂无访问记录</NoDataMessage>
+          <VisitNotification messages={notificationMessages} />
         )}
+        
+        <Divider />
+        
+        <SectionTitle>留言板泡泡</SectionTitle>
+        
+        <WhispersContainer>
+          {isWhispersLoading ? (
+            <LoadingContainer>加载悄悄话中...</LoadingContainer>
+          ) : whispersError ? (
+            <ErrorContainer>{whispersError}</ErrorContainer>
+          ) : whispers.length === 0 ? (
+            <EmptyState>还没有任何悄悄话，快来留下第一个吧！</EmptyState>
+          ) : (
+            <WhisperBubbles whispers={whispers} />
+          )}
+        </WhispersContainer>
       </ContentContainer>
       
-      {!isLoading && !error && Object.keys(todayVisits).length > 0 && (
-        <StatsCard>
-          <h2>今日访问统计</h2>
-          {Object.entries(todayVisits).map(([identity, count]) => (
-            <VisitItem key={identity}>
-              <span className="name">{formatIdentity(identity)}</span>
-              <span className="count">{count} 次</span>
-            </VisitItem>
-          ))}
-        </StatsCard>
-      )}
+      <FooterText>
+        轻点泡泡，查看悄悄话内容 ✨
+      </FooterText>
+      
+      {/* 悄悄话输入框 */}
+      <WhisperInput onSend={handleSendWhisper} isLoading={isSending} />
     </PageContainer>
   );
 };
 
-export default Whisper; 
+export default WhisperPage; 

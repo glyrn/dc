@@ -163,9 +163,11 @@ API 基础路径: `[REACT_APP_API_BASE_URL]` (例如: `https://api.love.goree.te
 - **URL:** `/api/diary/month-status`
 - **方法:** `GET`
 - **查询参数:**
+
   - `year` (number, 必需): 年份 (e.g., 2024)
   - `month` (number, 必需): 月份 (1-12) (e.g., 7)
 - **成功响应 (200 OK):**
+
   - **内容类型:** `application/json`
   - **响应体:** `number[]` - 包含当月有日记的日期（日）的数组。
 
@@ -173,6 +175,7 @@ API 基础路径: `[REACT_APP_API_BASE_URL]` (例如: `https://api.love.goree.te
   [5, 12, 25]
   ```
 - **错误响应:**
+
   - `400 Bad Request`: 参数缺失或无效。
   - `500 Internal Server Error`: 服务器错误。
 
@@ -183,8 +186,10 @@ API 基础路径: `[REACT_APP_API_BASE_URL]` (例如: `https://api.love.goree.te
 - **URL:** `/api/diary/entry`
 - **方法:** `GET`
 - **查询参数:**
+
   - `date` (string, 必需): 日期，格式 'YYYY-MM-DD' (e.g., "2024-07-12")
 - **成功响应 (200 OK):**
+
   - **内容类型:** `application/json`
   - **响应体:** 日记对象。
 
@@ -197,6 +202,7 @@ API 基础路径: `[REACT_APP_API_BASE_URL]` (例如: `https://api.love.goree.te
   }
   ```
 - **错误响应:**
+
   - `404 Not Found`: 指定日期无日记。
   - `400 Bad Request`: `date` 参数缺失或格式错误。
   - `500 Internal Server Error`: 服务器错误。
@@ -208,6 +214,7 @@ API 基础路径: `[REACT_APP_API_BASE_URL]` (例如: `https://api.love.goree.te
 - **URL:** `/api/diary/entry`
 - **方法:** `POST`
 - **请求体 (Content-Type: application/json):**
+
   ```json
   {
     "date": "YYYY-MM-DD", // 必需
@@ -217,6 +224,7 @@ API 基础路径: `[REACT_APP_API_BASE_URL]` (例如: `https://api.love.goree.te
   }
   ```
 - **成功响应 (201 Created):**
+
   - **内容类型:** `application/json`
   - **响应体:** 创建成功的日记对象 (可能包含 ID)。
 
@@ -230,6 +238,7 @@ API 基础路径: `[REACT_APP_API_BASE_URL]` (例如: `https://api.love.goree.te
   }
   ```
 - **错误响应:**
+
   - `400 Bad Request`: 请求体无效或缺少字段。
   - `409 Conflict`: 该日期的日记已存在。
   - `500 Internal Server Error`: 服务器错误。
@@ -241,8 +250,10 @@ API 基础路径: `[REACT_APP_API_BASE_URL]` (例如: `https://api.love.goree.te
 - **URL:** `/api/diary/entry/{date}`
 - **方法:** `PUT`
 - **路径参数:**
+
   - `date` (string, 必需): 要更新的日记日期 (YYYY-MM-DD)。
 - **请求体 (Content-Type: application/json):** 包含更新字段的完整日记信息 (除了日期)。
+
   ```json
   {
     "title": "更新后的标题",   // 必需
@@ -251,6 +262,7 @@ API 基础路径: `[REACT_APP_API_BASE_URL]` (例如: `https://api.love.goree.te
   }
   ```
 - **成功响应 (200 OK):**
+
   - **内容类型:** `application/json`
   - **响应体:** 更新后的完整日记对象。
 
@@ -264,6 +276,7 @@ API 基础路径: `[REACT_APP_API_BASE_URL]` (例如: `https://api.love.goree.te
   }
   ```
 - **错误响应:**
+
   - `400 Bad Request`: 请求体无效或缺少字段。
   - `404 Not Found`: 指定日期的日记不存在。
   - `500 Internal Server Error`: 服务器错误。
@@ -338,11 +351,17 @@ API 基础路径: `[REACT_APP_API_BASE_URL]` (例如: `https://api.love.goree.te
   ```
 
   或
-*  ```json
+* ```json
+
+  ```
+
   {
     "error": "Token已过期"
   }
-  ```
+
+```
+
+
 
 
 ## API 文档 - 访问日志 (Access Log)
@@ -380,4 +399,75 @@ API 基础路径: `[REACT_APP_API_BASE_URL]` (例如: `https://api.love.goree.te
     }
     ```
   - `401 Unauthorized`: 需要认证但未提供有效 Token 或 Token 过期。
+  - `500 Internal Server Error`: 服务器内部错误。
+
+## API 文档 - 匿名悄悄话 (Whisper - Anonymous)
+
+**基础路径:** (与项目其他 API 保持一致)
+
+**认证:** 以下所有接口都需要有效的 `Authorization: Bearer <token>` 请求头。
+
+### 1. 发送匿名悄悄话
+
+- **Endpoint:** `POST /api/whispers`
+- **描述:** 允许已认证用户发送一条匿名的悄悄话。发送者的身份仅用于认证，不会记录在消息中。
+- **请求体 (Request Body - `application/json`):**
+  ```json
+  {
+    "message": "这是一条匿名悄悄话。" // 必需
+  }
+```
+
+- **成功响应 (201 Created):** 返回刚创建的悄悄话对象。
+  ```json
+  {
+    "id": "后端生成的唯一ID",
+    "message": "这是一条匿名悄悄话。",
+    "timestamp": "ISO 8601 格式的时间戳" // 例如 "2024-08-01T10:45:00Z"
+  }
+  ```
+- **失败响应:**
+  - `400 Bad Request`: 请求体缺少 `message` 字段。
+    ```json
+    { "error": "请求体缺少 message 字段" }
+    ```
+  - `401 Unauthorized`: Token 缺失、无效或过期。
+    ```json
+    { "error": "需要认证" } 
+    // 或
+    { "error": "Token已过期" }
+    ```
+  - `500 Internal Server Error`: 服务器内部错误。
+
+### 2. 获取所有悄悄话
+
+- **Endpoint:** `GET /api/whispers`
+- **描述:** 允许已认证用户获取所有已发送的匿名悄悄话列表。
+- **查询参数 (Query Parameters) - 可选:**
+  - `limit` (number): 限制返回的悄悄话数量 (例如，获取最新的 N 条)。
+  - `before_id` (string): 获取指定 ID 之前的悄悄话 (用于分页)。
+  - `since_id` (string): 获取指定 ID 之后的悄悄话 (用于分页或增量加载)。
+- **成功响应 (200 OK):** 返回一个包含所有悄悄话对象的数组，通常按时间倒序排列。
+  ```json
+  [
+    {
+      "id": "whisper-id-3",
+      "message": "最新的一条匿名消息。",
+      "timestamp": "2024-08-01T11:00:00Z"
+    },
+    {
+      "id": "whisper-id-2",
+      "message": "之前的另一条消息。",
+      "timestamp": "2024-08-01T10:50:00Z"
+    },
+    {
+      "id": "whisper-id-1",
+      "message": "最早的一条匿名消息。",
+      "timestamp": "2024-08-01T10:45:00Z"
+    }
+    // ... 更多悄悄话
+  ]
+  ```
+- **失败响应:**
+  - `401 Unauthorized`: Token 缺失、无效或过期。
   - `500 Internal Server Error`: 服务器内部错误。
