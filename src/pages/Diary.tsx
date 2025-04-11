@@ -19,8 +19,9 @@ import { FaBed } from 'react-icons/fa';
 import { FaSadTear } from 'react-icons/fa';
 import { FaMeh } from 'react-icons/fa';
 import { FaHistory } from 'react-icons/fa';
+import { FaClock } from 'react-icons/fa';
 import DiaryFormModal from '../components/DiaryFormModal';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 // 定义日记数据类型
 interface DiaryEntry {
@@ -238,12 +239,12 @@ const MoodTag = styled.div<{ mood: string }>`
   }
 `;
 
-const BackButton = styled.button`
+const BackButton = styled.button<{ isTimelineButton?: boolean }>`
   display: flex;
   align-items: center;
   background: none;
   border: none;
-  color: var(--accent-color, #6c5ce7);
+  color: ${props => props.isTimelineButton ? 'var(--accent-color-secondary, #e17055)' : 'var(--accent-color, #6c5ce7)'};
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
@@ -257,6 +258,14 @@ const BackButton = styled.button`
   &:hover {
     text-decoration: underline;
   }
+`;
+
+// 添加按钮容器用于并排放置返回按钮
+const NavigationButtons = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
 `;
 
 // 加载状态
@@ -312,6 +321,7 @@ const TypedFaRegMeh = FaRegMeh as React.FC<any>;
 const TypedFaBed = FaBed as React.FC<any>;
 const TypedFaSadTear = FaSadTear as React.FC<any>;
 const TypedFaMeh = FaMeh as React.FC<any>;
+const TypedFaClock = FaClock as React.FC<any>;
 const TypedFaHistory = FaHistory as React.FC<any>;
 
 // 获取某月的天数
@@ -497,6 +507,7 @@ const Diary: React.FC = () => {
   
   // 获取location，用于接收来自Timeline的日期参数
   const location = useLocation();
+  const navigate = useNavigate(); // 添加导航钩子
 
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
@@ -822,6 +833,11 @@ const Diary: React.FC = () => {
     }
   };
 
+  // 返回时间轴页面
+  const backToTimeline = () => {
+    navigate('/timeline');
+  };
+
   // Modified renderDiaryDetail to include Edit button and hide Add button for future dates
   const renderDiaryDetail = () => {
     if (isDetailLoading) {
@@ -846,6 +862,22 @@ const Diary: React.FC = () => {
 
     return (
         <div>
+          {/* 修改导航按钮部分，根据来源选择性显示按钮 */}
+          <NavigationButtons>
+            {isFromTimeline ? (
+              <BackButton 
+                isTimelineButton 
+                onClick={backToTimeline}
+              >
+                <TypedFaClock /> 返回时间轴
+              </BackButton>
+            ) : (
+              <BackButton onClick={backToCalendar}>
+                <TypedFaArrowLeft /> 返回日历
+              </BackButton>
+            )}
+          </NavigationButtons>
+
           {/* 添加从时间轴来源的视觉提示 */}
           {isFromTimeline && timelineSourceDate && (
             <TimelineSourceIndicator
@@ -1096,9 +1128,6 @@ const Diary: React.FC = () => {
 
         {view === 'detail' && (
             <motion.div key="detail" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}>
-                <BackButton onClick={backToCalendar}>
-                    <TypedFaArrowLeft /> 返回日历
-                </BackButton>
                 {renderDiaryDetail()}
             </motion.div>
         )}
