@@ -8,6 +8,35 @@ import { useNavigate } from 'react-router-dom';
 // 移除未使用的 IconType 导入
 // import { IconType } from 'react-icons';
 
+// 从 localStorage 获取认证 Token
+const getAuthToken = (): string | null => {
+  return localStorage.getItem("auth_token");
+};
+
+// 创建请求头，包含认证信息
+const createHeaders = (contentType = "application/json"): HeadersInit => {
+  const headers: HeadersInit = {
+    "Content-Type": contentType,
+  };
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
+};
+
+// 处理 401 错误
+const handleAuthError = (response: Response, navigate: ReturnType<typeof useNavigate>) => {
+  if (response.status === 401) {
+    console.error("认证失败: Token 无效或已过期");
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("user_identity");
+    // 使用 navigate 进行页面跳转
+    navigate("/"); // 重定向到欢迎/登录页面
+    throw new Error("认证已过期，请重新登录");
+  }
+};
+
 // 时间轴主容器
 const TimelineContainer = styled.div`
   padding: 100px 20px 80px; // 增加了顶部和底部的padding
@@ -551,60 +580,61 @@ const Timeline: React.FC = () => {
   // 添加过渡状态
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [transitionMessage, setTransitionMessage] = useState('');
+  const navigate = useNavigate(); // 获取 navigate 函数
+
+  // 优先使用环境变量中的 API 地址
+  const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || "";
 
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-
-      // 从环境变量获取 API 基础 URL，如果未定义则默认为空字符串 (相对路径)
-      const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || '';
-      // 如果环境变量未设置，可以在控制台给个提示
-      if (!process.env.REACT_APP_API_BASE_URL) {
-        console.warn(
-          'REACT_APP_API_BASE_URL is not defined. Using relative path for API calls.'
-        );
+      if (!apiBaseUrl) {
+        setError("API 地址未配置 (REACT_APP_API_BASE_URL)");
+        setLoading(false);
+        return;
       }
+      // 使用模板字符串拼接完整的 API URL
       const apiUrl = `${apiBaseUrl}/api/timeline`;
-
-      // 获取认证 token
-      const token = localStorage.getItem('auth_token');
-
+      console.log("Fetching timeline data from:", apiUrl); // 调试信息
       try {
-        // 使用构建好的 apiUrl，并添加 Authorization 头
+        setLoading(true);
+        setError(null);
         const response = await fetch(apiUrl, {
-          headers: {
-            'Authorization': token ? `Bearer ${token}` : '',
-          }
+          headers: createHeaders(), // <--- 添加请求头
         });
-        
-        // 处理认证错误
-        if (response.status === 401) {
-          console.error('认证失败: Token 无效或已过期');
-          // 清除过期的 token
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('user_identity');
-          // 重定向到欢迎页面重新认证
-          window.location.href = '/';
-          throw new Error('认证已过期，请重新登录');
-        }
+
+        // 添加 401 错误处理
+        handleAuthError(response, navigate);
 
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          const errorText = await response.text();
+          console.error(`HTTP error! status: ${response.status}`, errorText);
+          throw new Error(`HTTP error! status: ${response.status}. ${errorText}`);
         }
-        const data = await response.json();
+        const data: TimelineItemData[] = await response.json();
+        // 可选: 按日期排序 (如果后端不保证顺序)
+        data.sort((a, b) => {
+          // 将 "未来" 放到最后
+          if (a.date === "未来") return 1;
+          if (b.date === "未来") return -1;
+          // 按日期字符串降序排序
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        });
         setTimelineData(data);
-      } catch (e) {
-        console.error(`Failed to fetch timeline data from ${apiUrl}, using mock data:`, e);
-        setError('无法加载实时数据，当前显示为离线示例。');
-        setTimelineData(mockTimelineData);
+      } catch (err) {
+        console.error('Failed to fetch timeline data:', err);
+        // 检查错误是否由 handleAuthError 抛出
+        if (err instanceof Error && err.message.includes("认证已过期")) {
+          // 认证错误已处理，不需要再次设置错误状态
+        } else {
+          setError(err instanceof Error ? err.message : '获取时间轴数据时发生未知错误');
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [navigate]);
 
   const handleAddClick = () => {
     setIsModalOpen(true);
@@ -645,54 +675,56 @@ const Timeline: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!validateForm()) {
       return;
     }
 
-    setIsSubmitting(true);
+    if (!apiBaseUrl) {
+      setError("API 地址未配置 (REACT_APP_API_BASE_URL)");
+      return;
+    }
+    const apiUrl = `${apiBaseUrl}/api/timeline`;
+    console.log("Submitting new timeline item to:", apiUrl); // 调试信息
+
     try {
-      const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || '';
-      const apiUrl = `${apiBaseUrl}/api/timeline`;
-
-      // 获取认证 token
-      const token = localStorage.getItem('auth_token');
-
       const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : '',
-        },
+        headers: createHeaders(), // <--- 添加请求头
         body: JSON.stringify(formData),
       });
 
-      // 处理认证错误
-      if (response.status === 401) {
-        console.error('认证失败: Token 无效或已过期');
-        // 清除过期的 token
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user_identity');
-        // 重定向到欢迎页面重新认证
-        window.location.href = '/';
-        throw new Error('认证已过期，请重新登录');
-      }
+      // 添加 401 错误处理
+      handleAuthError(response, navigate);
 
       if (!response.ok) {
-        throw new Error('添加失败');
+        const errorData = await response.json().catch(() => ({ error: '添加条目时出错，无法解析错误信息' }));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
 
-      const newItem = await response.json();
-      setTimelineData(prev => [newItem, ...prev]);
+      const addedItem = await response.json();
+      // 更新状态以立即显示新条目，无需重新获取所有数据
+      setTimelineData(prevData => [
+        addedItem,
+        ...prevData
+      ].sort((a, b) => {
+          // 保持排序逻辑一致
+          if (a.date === "未来") return 1;
+          if (b.date === "未来") return -1;
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+       }));
       handleCloseModal();
     } catch (error) {
-      console.error('Error adding timeline item:', error);
-      setFormErrors(prev => ({
-        ...prev,
-        submit: '添加失败，请稍后重试'
-      }));
-    } finally {
-      setIsSubmitting(false);
+      console.error('Failed to add timeline item:', error);
+      // 检查错误是否由 handleAuthError 抛出
+      if (error instanceof Error && error.message.includes("认证已过期")) {
+         // 认证错误已处理
+      } else {
+        // 使用函数式更新以避免类型问题，并保留之前的错误信息
+        setFormErrors(prev => ({ 
+            ...prev, 
+            submit: error instanceof Error ? error.message : '提交失败' 
+        }));
+      }
     }
   };
 
