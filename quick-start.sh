@@ -28,8 +28,7 @@ if ! command -v docker > /dev/null 2>&1; then
 fi
 
 echo "步骤 1: 安装/更新项目依赖..."
-# 设置npm缓存策略，优先使用缓存减少网络和磁盘I/O
-npm config set cache-min 604800  # 缓存一周
+# 优先使用缓存减少网络和磁盘I/O
 npm install --prefer-offline
 if [ $? -ne 0 ]; then
     echo "错误：npm install 失败。"
