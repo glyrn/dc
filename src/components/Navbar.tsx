@@ -181,13 +181,14 @@ const UserIdentityContainer = styled.div`
   
   @media (max-width: 768px) {
     // 移动端样式
-    margin: 0 auto 1.2rem auto; // 增加下边距
+    margin: 0 auto 2.5rem auto; // 增加下边距，留出更多空间给下拉菜单
     order: 0;
     width: auto;
     align-self: center; // 居中对齐
     display: flex;
     justify-content: center; // 内容居中
     transform: scale(1.05); // 整体放大到105%
+    z-index: 1100;
   }
 `;
 
@@ -248,26 +249,37 @@ const DropdownMenu = styled.div<{ isOpen: boolean }>`
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  width: 150px;
+  width: auto;
+  min-width: 80px;
+  max-width: 100%;
   background-color: white;
   border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  padding: 8px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  padding: 6px;
   opacity: ${props => props.isOpen ? 1 : 0};
   visibility: ${props => props.isOpen ? 'visible' : 'hidden'};
   transform: ${props => props.isOpen ? 'translateY(0)' : 'translateY(-10px)'};
   transition: all 0.2s ease;
   z-index: 1100;
+  border: 1px solid rgba(0, 0, 0, 0.05);
   
   @media (max-width: 768px) {
     position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: ${props => props.isOpen ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(-10px)'};
-    width: 140px;
-    margin-top: 8px;
-    padding: 10px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+    width: auto;
+    min-width: 80px;
+    max-width: 100%;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    transform: ${props => props.isOpen ? 'translateY(0)' : 'translateY(-5px)'};
+    opacity: ${props => props.isOpen ? 1 : 0};
+    visibility: ${props => props.isOpen ? 'visible' : 'hidden'};
+    padding: 6px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    z-index: 1200;
   }
 `;
 
@@ -276,24 +288,63 @@ const LogoutButton = styled.button`
   background: none;
   border: none;
   color: #333;
-  font-size: 14px;
-  padding: 8px 16px;
-  border-radius: 20px;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
+  justify-content: center;
   width: 100%;
-  text-align: left;
+  text-align: center;
+  position: relative;
+  font-weight: 500;
+  background-color: #f5f5f7;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  white-space: nowrap;
+  
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 15px;
+    height: 15px;
+    margin-right: 4px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4'%3E%3C/path%3E%3Cpolyline points='16 17 21 12 16 7'%3E%3C/polyline%3E%3Cline x1='21' y1='12' x2='9' y2='12'%3E%3C/line%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    opacity: 0.8;
+  }
   
   &:hover {
-    background-color: rgba(255, 107, 107, 0.1);
+    background-color: rgba(255, 107, 107, 0.15);
+    color: #e53e3e;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    
+    &::before {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e53e3e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4'%3E%3C/path%3E%3Cpolyline points='16 17 21 12 16 7'%3E%3C/polyline%3E%3Cline x1='21' y1='12' x2='9' y2='12'%3E%3C/line%3E%3C/svg%3E");
+      opacity: 1;
+    }
   }
   
   @media (max-width: 768px) {
-    font-size: 16px;
-    padding: 10px 16px;
+    font-size: 14px;
+    padding: 6px 8px;
     font-weight: 500;
+    border-radius: 8px;
+    background-color: #f5f5f7;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    
+    &::before {
+      width: 16px;
+      height: 16px;
+      margin-right: 4px;
+    }
+    
+    &:hover, &:active {
+      background-color: #ffe5e5;
+    }
   }
 `;
 
@@ -396,7 +447,7 @@ const Navbar: React.FC = () => {
               
               <DropdownMenu isOpen={isDropdownOpen}>
                 <LogoutButton onClick={handleLogout}>
-                  退出登录
+                  退出
                 </LogoutButton>
               </DropdownMenu>
             </UserIdentityContainer>
