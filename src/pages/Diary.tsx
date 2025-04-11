@@ -188,6 +188,7 @@ const DiaryContent = styled.p`
   line-height: 1.8;
   color: #444;
   margin-bottom: 30px;
+  white-space: pre-wrap;
 `;
 
 const MoodTag = styled.div<{ mood: string }>`
