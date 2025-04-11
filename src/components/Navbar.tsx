@@ -423,6 +423,16 @@ const Navbar: React.FC = () => {
     setIsDropdownOpen(!isDropdownOpen);
   };
 
+  // 鼠标悬停时显示下拉菜单
+  const handleMouseEnter = () => {
+    setIsDropdownOpen(true);
+  };
+
+  // 鼠标离开时隐藏下拉菜单
+  const handleMouseLeave = () => {
+    setIsDropdownOpen(false);
+  };
+
   return (
     <>
       <NavContainer scrolled={scrolled} visible={visible}>
@@ -436,7 +446,11 @@ const Navbar: React.FC = () => {
         
         <NavLinks isOpen={isOpen}>
           {userIdentity && (
-            <UserIdentityContainer ref={dropdownRef}>
+            <UserIdentityContainer 
+              ref={dropdownRef}
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+            >
               <UserIdentity onClick={toggleDropdown}>
                 <IdentityDot identity={userIdentity} />
                 {userIdentity === 'flisa' ? 'Flisa' : 
