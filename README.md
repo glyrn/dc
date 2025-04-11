@@ -258,3 +258,76 @@ API 基础路径: `[REACT_APP_API_BASE_URL]` (例如: `https://api.love.goree.te
     -   `400 Bad Request`: 请求体无效或缺少字段。
     -   `404 Not Found`: 指定日期的日记不存在。
     -   `500 Internal Server Error`: 服务器错误。
+
+## API 文档 - 认证 (Authentication)
+
+本应用使用基于口令的 Token 认证来识别用户并控制访问。
+
+**认证流程:**
+
+1.  **用户登录:** 前端将用户输入的口令发送到 `POST /api/login` 接口。
+2.  **后端验证:** 服务器验证口令。
+    *   口令 `111` 对应身份 `flisa`。
+    *   口令 `222` 对应身份 `goree`。
+    *   其他口令无效。
+3.  **Token 生成:** 验证通过后，服务器生成 JWT (JSON Web Token)，包含用户身份 (`identity`) 和过期时间。
+4.  **Token 下发:** 服务器将 JWT 返回给前端。
+5.  **前端存储:** 前端将 Token 存储在本地 (例如 `localStorage`)。
+6.  **后续请求:** 前端在访问受保护接口时，在 `Authorization` 请求头中携带 Token (`Bearer <token>`)。
+7.  **后端验证 Token:** 服务器验证请求头中的 Token 是否有效（签名、过期时间）。
+8.  **访问控制:** 根据 Token 中的身份信息处理请求。无效或缺失 Token 将导致 `401 Unauthorized` 错误。
+
+**重要提示:** 当前实现基于简单的口令，且用户身份信息直接包含在前端可解析的 JWT 中。这是一种 **低安全级别** 的认证，适用于内部或个人项目。对于生产环境或需要更高安全性的应用，应考虑更健壮的认证机制（如 OAuth2、密码哈希存储等）。
+
+### 1. 用户登录
+
+-   **Endpoint:** `POST /api/login`
+-   **描述:** 使用口令进行登录，获取认证 Token。
+-   **请求体 (Request Body - `application/json`):**
+    ```json
+    {
+      "passphrase": "用户输入的口令" 
+    }
+    ```
+-   **成功响应 (200 OK):**
+    ```json
+    {
+      "token": "生成的 JWT 字符串",
+      "identity": "flisa" // 或 "goree"
+    }
+    ```
+-   **失败响应 (401 Unauthorized):** 口令无效。
+    ```json
+    {
+      "error": "无效的口令" 
+    }
+    ```
+-   **失败响应 (400 Bad Request):** 请求体格式错误。
+    ```json
+    {
+        "error": "请求体缺少 passphrase 字段"
+    }
+    ```
+
+### 2. 访问受保护接口
+
+-   **Endpoint:** 所有需要登录才能访问的 API 接口 (例如 `/api/diaries`, `/api/timeline` 等，根据实际需要配置)。
+-   **描述:** 需要在请求头中提供有效的认证 Token。
+-   **请求头 (Request Headers):**
+    ```
+    Authorization: Bearer <从登录接口获取的Token>
+    ```
+-   **成功响应 (200 OK):**
+    *   返回接口预期的业务数据。
+*   **失败响应 (401 Unauthorized):** Token 缺失、无效或过期。
+    ```json
+    {
+      "error": "需要认证" 
+    }
+    ```
+    或
+    ```json
+    {
+      "error": "Token已过期"
+    }
+    ```

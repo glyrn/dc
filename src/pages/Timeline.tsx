@@ -567,9 +567,28 @@ const Timeline: React.FC = () => {
       }
       const apiUrl = `${apiBaseUrl}/api/timeline`;
 
+      // 获取认证 token
+      const token = localStorage.getItem('auth_token');
+
       try {
-        // 使用构建好的 apiUrl
-        const response = await fetch(apiUrl);
+        // 使用构建好的 apiUrl，并添加 Authorization 头
+        const response = await fetch(apiUrl, {
+          headers: {
+            'Authorization': token ? `Bearer ${token}` : '',
+          }
+        });
+        
+        // 处理认证错误
+        if (response.status === 401) {
+          console.error('认证失败: Token 无效或已过期');
+          // 清除过期的 token
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('user_identity');
+          // 重定向到欢迎页面重新认证
+          window.location.href = '/';
+          throw new Error('认证已过期，请重新登录');
+        }
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -636,13 +655,28 @@ const Timeline: React.FC = () => {
       const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || '';
       const apiUrl = `${apiBaseUrl}/api/timeline`;
 
+      // 获取认证 token
+      const token = localStorage.getItem('auth_token');
+
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
         },
         body: JSON.stringify(formData),
       });
+
+      // 处理认证错误
+      if (response.status === 401) {
+        console.error('认证失败: Token 无效或已过期');
+        // 清除过期的 token
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_identity');
+        // 重定向到欢迎页面重新认证
+        window.location.href = '/';
+        throw new Error('认证已过期，请重新登录');
+      }
 
       if (!response.ok) {
         throw new Error('添加失败');

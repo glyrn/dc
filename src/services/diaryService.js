@@ -14,6 +14,50 @@ const cleanApiBaseUrl = API_BASE_URL.endsWith("/")
  */
 class DiaryService {
   /**
+   * 获取认证 token
+   * @returns {string|null} 认证 token 或 null
+   * @private
+   */
+  _getAuthToken() {
+    return localStorage.getItem("auth_token");
+  }
+
+  /**
+   * 创建带认证的请求头
+   * @returns {Object} 请求头对象
+   * @private
+   */
+  _createHeaders(contentType = "application/json") {
+    const headers = {
+      "Content-Type": contentType,
+    };
+
+    const token = this._getAuthToken();
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    return headers;
+  }
+
+  /**
+   * 检查响应状态码，处理 401 (未授权) 错误
+   * @param {Response} response - fetch 响应对象
+   * @private
+   */
+  _handleAuthError(response) {
+    if (response.status === 401) {
+      console.error("认证失败: Token 无效或已过期");
+      // 清除过期的 token
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("user_identity");
+      // 重定向到欢迎页面重新认证
+      window.location.href = "/";
+      throw new Error("认证已过期，请重新登录");
+    }
+  }
+
+  /**
    * 获取指定月份包含日记的日期列表
    * @param {number} year - 年份
    * @param {number} month - 月份（1-12）
@@ -28,7 +72,12 @@ class DiaryService {
     }
     const url = `${cleanApiBaseUrl}/api/diary/month-status?year=${year}&month=${month}`;
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: this._createHeaders(),
+      });
+
+      this._handleAuthError(response);
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -54,7 +103,12 @@ class DiaryService {
     }
     const url = `${cleanApiBaseUrl}/api/diary/entry?date=${dateStr}`;
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: this._createHeaders(),
+      });
+
+      this._handleAuthError(response);
+
       if (response.status === 404) {
         return null; // 日记不存在
       }
@@ -83,11 +137,12 @@ class DiaryService {
     try {
       const response = await fetch(url, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: this._createHeaders(),
         body: JSON.stringify(entryData),
       });
+
+      this._handleAuthError(response);
+
       if (!response.ok) {
         // 可以根据 status code 给出更具体的错误信息
         if (response.status === 409) {
@@ -124,11 +179,12 @@ class DiaryService {
     try {
       const response = await fetch(url, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: this._createHeaders(),
         body: JSON.stringify(entryData),
       });
+
+      this._handleAuthError(response);
+
       if (!response.ok) {
         if (response.status === 404) {
           throw new Error(

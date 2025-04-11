@@ -1,5 +1,5 @@
-import React, { Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import GlobalStyles from './styles/GlobalStyles';
 import Navbar from './components/Navbar';
 import { AnimatePresence } from 'framer-motion';
@@ -32,6 +32,37 @@ const NavbarLayout = ({ children }: { children: React.ReactNode }) => (
   </>
 );
 
+// 受保护的路由组件，检查用户是否登录
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+}
+
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+  const location = useLocation();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  
+  useEffect(() => {
+    // 检查本地存储中是否有有效的认证 token
+    const token = localStorage.getItem('auth_token');
+    const identity = localStorage.getItem('user_identity');
+    
+    setIsAuthenticated(!!token && !!identity);
+  }, []);
+  
+  // 加载中状态
+  if (isAuthenticated === null) {
+    return <LoadingFallback />;
+  }
+  
+  // 如果未登录，重定向到欢迎页面
+  if (!isAuthenticated) {
+    return <Navigate to="/" state={{ from: location }} replace />;
+  }
+  
+  // 已登录，渲染子组件
+  return <>{children}</>;
+};
+
 function App() {
   return (
     <Router>
@@ -42,26 +73,34 @@ function App() {
             {/* 欢迎页面作为默认路由 */}
             <Route path="/" element={<Welcome />} />
             
-            {/* 其他页面使用导航栏布局 */}
+            {/* 其他页面使用导航栏布局并添加认证保护 */}
             <Route path="/home" element={
-              <NavbarLayout>
-                <Home />
-              </NavbarLayout>
+              <ProtectedRoute>
+                <NavbarLayout>
+                  <Home />
+                </NavbarLayout>
+              </ProtectedRoute>
             } />
             <Route path="/gallery" element={
-              <NavbarLayout>
-                <Gallery />
-              </NavbarLayout>
+              <ProtectedRoute>
+                <NavbarLayout>
+                  <Gallery />
+                </NavbarLayout>
+              </ProtectedRoute>
             } />
             <Route path="/diary" element={
-              <NavbarLayout>
-                <Diary />
-              </NavbarLayout>
+              <ProtectedRoute>
+                <NavbarLayout>
+                  <Diary />
+                </NavbarLayout>
+              </ProtectedRoute>
             } />
             <Route path="/timeline" element={
-              <NavbarLayout>
-                <Timeline />
-              </NavbarLayout>
+              <ProtectedRoute>
+                <NavbarLayout>
+                  <Timeline />
+                </NavbarLayout>
+              </ProtectedRoute>
             } />
             <Route path="*" element={
               <NavbarLayout>

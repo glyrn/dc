@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 
@@ -161,14 +161,68 @@ const MenuItem = styled(Link)<{ isActive?: boolean }>`
   }
 `;
 
+// 用户身份标签
+const UserIdentity = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background-color: #f5f5f7;
+  margin-left: 1rem;
+  font-size: 0.85rem;
+  color: #333;
+  
+  @media (max-width: 768px) {
+    margin: 0 0 1rem 0;
+  }
+`;
+
+const IdentityDot = styled.span<{ identity: string }>`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: ${props => props.identity === 'flisa' ? '#6c5ce7' : props.identity === 'goree' ? '#00b894' : '#b2bec3'};
+`;
+
+// 注销按钮
+const LogoutButton = styled.button`
+  background: none;
+  border: none;
+  color: #333;
+  font-size: 14px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  
+  &:hover {
+    background-color: rgba(255, 107, 107, 0.1);
+    box-shadow: 0 0 10px rgba(255, 107, 107, 0.1);
+  }
+  
+  @media (max-width: 768px) {
+    margin-top: 2rem;
+  }
+`;
+
 const Navbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const [visible, setVisible] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [prevScrollPos, setPrevScrollPos] = useState(0);
+  const [userIdentity, setUserIdentity] = useState<string | null>(null);
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
+    // 获取用户身份
+    const identity = localStorage.getItem('user_identity');
+    setUserIdentity(identity);
+    
     const handleScroll = () => {
       const currentScrollPos = window.pageYOffset;
       
@@ -194,6 +248,19 @@ const Navbar: React.FC = () => {
   const closeMenu = () => {
     setIsOpen(false);
   };
+  
+  // 注销处理
+  const handleLogout = () => {
+    // 清除认证信息
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_identity');
+    
+    // 关闭菜单
+    closeMenu();
+    
+    // 导航到欢迎页面
+    navigate('/');
+  };
 
   return (
     <>
@@ -207,6 +274,13 @@ const Navbar: React.FC = () => {
         </HamburgerIcon>
         
         <NavLinks isOpen={isOpen}>
+          {userIdentity && (
+            <UserIdentity>
+              <IdentityDot identity={userIdentity} />
+              {userIdentity === 'flisa' ? 'Flisa' : userIdentity === 'goree' ? 'Goree' : '访客'}
+            </UserIdentity>
+          )}
+          
           <NavLink>
             <MenuItem 
               to="/home" 
@@ -243,6 +317,10 @@ const Navbar: React.FC = () => {
               时间轴
             </MenuItem>
           </NavLink>
+          
+          <LogoutButton onClick={handleLogout}>
+            退出登录
+          </LogoutButton>
         </NavLinks>
       </NavContainer>
       <Overlay isOpen={isOpen} onClick={closeMenu} />
