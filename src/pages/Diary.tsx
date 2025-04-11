@@ -2,24 +2,22 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import diaryService from '../services/diaryService';
-import {
-  FaChevronLeft,
-  FaChevronRight,
-  FaSpinner,
-  FaExclamationTriangle,
-  FaArrowLeft,
-  FaEdit,
-  FaPlus,
-  FaSmile,
-  FaLaughBeam,
-  FaBook,
-  FaTrophy,
-  FaGrinStars,
-  FaRegMeh,
-  FaBed,
-  FaSadTear,
-  FaMeh
-} from 'react-icons/fa';
+import { FaChevronLeft } from 'react-icons/fa';
+import { FaChevronRight } from 'react-icons/fa';
+import { FaSpinner } from 'react-icons/fa';
+import { FaExclamationTriangle } from 'react-icons/fa';
+import { FaArrowLeft } from 'react-icons/fa';
+import { FaEdit } from 'react-icons/fa';
+import { FaPlus } from 'react-icons/fa';
+import { FaSmile } from 'react-icons/fa';
+import { FaLaughBeam } from 'react-icons/fa';
+import { FaBook } from 'react-icons/fa';
+import { FaTrophy } from 'react-icons/fa';
+import { FaGrinStars } from 'react-icons/fa';
+import { FaRegMeh } from 'react-icons/fa';
+import { FaBed } from 'react-icons/fa';
+import { FaSadTear } from 'react-icons/fa';
+import { FaMeh } from 'react-icons/fa';
 import DiaryFormModal from '../components/DiaryFormModal';
 
 // 定义日记数据类型

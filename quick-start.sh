@@ -11,6 +11,11 @@ export UV_THREADPOOL_SIZE=4  # 根据CPU核心数调整
 # 分配更多内存给Node.js，避免频繁GC
 export NODE_OPTIONS="--max-old-space-size=4096"  # 根据可用内存调整
 
+# 设置为生产环境，优化React构建过程
+export NODE_ENV=production
+# 禁用sourcemap以减少打包体积
+export GENERATE_SOURCEMAP=false
+
 # 检查 Node.js 和 npm 是否安装
 if ! command -v node > /dev/null 2>&1; then
     echo "错误：未找到 Node.js 命令。请确保 Node.js 已安装。"
@@ -29,7 +34,7 @@ fi
 
 echo "步骤 1: 安装/更新项目依赖..."
 # 优先使用缓存减少网络和磁盘I/O
-npm install --prefer-offline
+npm install --prefer-offline --production=false
 if [ $? -ne 0 ]; then
     echo "错误：npm install 失败。"
     exit 1
@@ -37,7 +42,7 @@ fi
 
 echo "步骤 2: 构建 React 应用 (npm run build)..."
 # 设置生产环境，优化构建过程
-NODE_ENV=production npm run build
+npm run build
 if [ $? -ne 0 ]; then
     echo "错误：npm run build 失败。"
     exit 1

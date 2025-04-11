@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { FaTimes, FaSpinner } from 'react-icons/fa';
+import { FaTimes } from 'react-icons/fa';
+import { FaSpinner } from 'react-icons/fa';
 
 interface DiaryEntry {
   date: string;
