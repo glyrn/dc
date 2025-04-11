@@ -553,6 +553,7 @@ const Diary: React.FC = () => {
       if (!entry || entry.isEmpty) return;
       setDateForModal(entry.date);
       setModalMode('edit');
+      setSelectedDiary(entry);
       setIsModalOpen(true);
   };
 
