@@ -782,7 +782,7 @@ const Diary: React.FC = () => {
               {isFutureDate ? (
                 <>
                   <h3>这一天还没到哦</h3>
-                  <p>敬请期待</p>
+                  <p>耐心等待一下吧</p>
                 </>
               ) : (
                 <>
