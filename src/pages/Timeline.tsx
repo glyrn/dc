@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 // import timelineData from '../timeline-data.json'; // 移除本地数据导入
-import { motion, useAnimation } from 'framer-motion';
+import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { FaPlus } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 // 移除未使用的 IconType 导入
 // import { IconType } from 'react-icons';
 
@@ -471,6 +472,36 @@ const ErrorText = styled.div`
   margin-top: 5px;
 `;
 
+// 添加过渡提示组件
+const TransitionMessage = styled(motion.div)`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.9);
+  z-index: 2000;
+  backdrop-filter: blur(5px);
+  color: var(--accent-color, #6c5ce7);
+  font-size: 1.4rem;
+  font-weight: 600;
+  text-align: center;
+  padding: 20px;
+`;
+
+const Spinner = styled(motion.div)`
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(108, 92, 231, 0.2);
+  border-top: 3px solid var(--accent-color, #6c5ce7);
+  border-radius: 50%;
+  margin-bottom: 15px;
+`;
+
 // 定义时间轴条目的类型
 interface TimelineItemData {
   date: string;
@@ -517,6 +548,9 @@ const Timeline: React.FC = () => {
     description: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // 添加过渡状态
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [transitionMessage, setTransitionMessage] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -659,6 +693,8 @@ const Timeline: React.FC = () => {
             index={index} 
             totalItems={timelineData.length}
             containerRef={containerRef}
+            setIsTransitioning={setIsTransitioning}
+            setTransitionMessage={setTransitionMessage}
           />
         ))}
 
@@ -674,6 +710,20 @@ const Timeline: React.FC = () => {
       >
         <TypedFaPlus size={24} />
       </AddButton>
+
+      {/* 添加过渡提示 */}
+      <AnimatePresence>
+        {isTransitioning && (
+          <TransitionMessage
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <Spinner animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} />
+            {transitionMessage}
+          </TransitionMessage>
+        )}
+      </AnimatePresence>
 
       {isModalOpen && (
         <ModalOverlay
@@ -746,13 +796,17 @@ interface TimelineItemWithScrollProps {
   index: number;
   totalItems: number;
   containerRef: React.RefObject<HTMLDivElement | null>;
+  setIsTransitioning: React.Dispatch<React.SetStateAction<boolean>>;
+  setTransitionMessage: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const TimelineItemWithScroll = ({ 
   item, 
   index,
   totalItems,
-  containerRef
+  containerRef,
+  setIsTransitioning,
+  setTransitionMessage
 }: TimelineItemWithScrollProps) => {
   const controls = useAnimation();
   const itemRef = useRef<HTMLDivElement>(null);
@@ -760,6 +814,7 @@ const TimelineItemWithScroll = ({
     triggerOnce: true,
     threshold: 0.1
   });
+  const navigate = useNavigate();
 
   // 合并ref
   const setRefs = React.useCallback(
@@ -802,6 +857,31 @@ const TimelineItemWithScroll = ({
     });
   };
 
+  // 点击卡片跳转到日记页面
+  const handleCardClick = () => {
+    // 如果日期是"未来"，则不做任何操作
+    if (item.date === '未来') return;
+    
+    // 显示过渡提示
+    setTransitionMessage(`正在寻找 ${formatDate(item.date)} 的回忆...`);
+    setIsTransitioning(true);
+    
+    // 延迟跳转，让用户看到提示
+    setTimeout(() => {
+      // 解析日期格式为YYYY-MM-DD，用于跳转
+      const dateObj = new Date(item.date);
+      const year = dateObj.getFullYear();
+      const month = dateObj.getMonth(); // 0-indexed
+      const day = dateObj.getDate();
+      
+      // 隐藏过渡提示
+      setIsTransitioning(false);
+      
+      // 跳转到日记页面
+      navigate('/diary', { state: { year, month, day } });
+    }, 1200); // 1.2秒后跳转
+  };
+
   return (
     <TimelineItem ref={setRefs}>
       <TimelineItemCard
@@ -809,6 +889,8 @@ const TimelineItemWithScroll = ({
         animate={controls}
         whileHover={{ scale: 1.02 }}
         transition={{ duration: 0.2 }}
+        onClick={handleCardClick}
+        style={{ cursor: item.date !== '未来' ? 'pointer' : 'default' }}
       >
         <TimelineDate>{formatDate(item.date)}</TimelineDate>
         <TimelineTitle>{item.title}</TimelineTitle>

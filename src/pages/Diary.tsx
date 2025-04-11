@@ -19,6 +19,7 @@ import { FaBed } from 'react-icons/fa';
 import { FaSadTear } from 'react-icons/fa';
 import { FaMeh } from 'react-icons/fa';
 import DiaryFormModal from '../components/DiaryFormModal';
+import { useLocation } from 'react-router-dom';
 
 // 定义日记数据类型
 interface DiaryEntry {
@@ -469,6 +470,9 @@ const Diary: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCheckingTodayEntry, setIsCheckingTodayEntry] = useState(false);
   const [todayHasEntry, setTodayHasEntry] = useState<boolean | null>(null);
+  
+  // 获取location，用于接收来自Timeline的日期参数
+  const location = useLocation();
 
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
@@ -889,6 +893,79 @@ const Diary: React.FC = () => {
     }
   };
 
+  // 添加处理来自Timeline的日期参数的逻辑
+  useEffect(() => {
+    // 检查location.state是否包含日期信息
+    if (location.state && location.state.year && location.state.month !== undefined && location.state.day) {
+      const { year, month, day } = location.state;
+      
+      // 更新当前显示的月份（如果不同）
+      if (currentYear !== year || currentMonth !== month) {
+        setCurrentDate(new Date(year, month, 1));
+      } else {
+        // 如果当前月份已经是目标月份，直接跳转到指定日期
+        // 只有当数据加载完成时才执行
+        if (!isLoading) {
+          const dateStr = formatDate(year, month, day);
+          const hasEntry = daysWithEntries.includes(day);
+          
+          setDateForModal(dateStr);
+          setIsDetailLoading(true);
+          setSelectedDiary(null);
+          setError(null);
+          setView('detail');
+          
+          if (hasEntry) {
+            // 尝试获取日记内容
+            diaryService.getDiaryEntry(dateStr)
+              .then(entry => {
+                if (entry) {
+                  setSelectedDiary(entry as DiaryEntry);
+                } else {
+                  setError('无法加载日记详情。');
+                  setSelectedDiary({
+                    date: dateStr,
+                    title: '加载失败',
+                    content: '',
+                    mood: 'neutral',
+                    isEmpty: true
+                  } as DiaryEntry);
+                }
+              })
+              .catch(err => {
+                console.error(err);
+                setError('加载日记详情时出错，请稍后重试。');
+                setSelectedDiary({
+                  date: dateStr,
+                  title: '加载出错',
+                  content: '',
+                  mood: 'neutral',
+                  isEmpty: true
+                } as DiaryEntry);
+              })
+              .finally(() => {
+                setIsDetailLoading(false);
+                // 清除location.state，防止刷新页面时重复触发
+                window.history.replaceState({}, document.title);
+              });
+          } else {
+            // 没有条目，显示空状态
+            setSelectedDiary({
+              date: dateStr,
+              title: '没有日记',
+              content: '',
+              mood: 'neutral',
+              isEmpty: true
+            } as DiaryEntry);
+            setIsDetailLoading(false);
+            // 清除location.state
+            window.history.replaceState({}, document.title);
+          }
+        }
+      }
+    }
+  }, [location.state, daysWithEntries, isLoading, currentYear, currentMonth]);
+  
   return (
     <DiaryContainer>
 

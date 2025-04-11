@@ -13,7 +13,7 @@ const NavContainer = styled.nav<{ scrolled: boolean; visible: boolean }>`
   align-items: center;
   padding: 0 1.5rem;
   height: 60px;
-  z-index: 1000;
+  z-index: 1010;
   transition: var(--transition);
   background: ${props => props.scrolled ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.8)'};
   backdrop-filter: blur(20px);
