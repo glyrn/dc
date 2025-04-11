@@ -9,7 +9,16 @@ import {
   FaExclamationTriangle,
   FaArrowLeft,
   FaEdit,
-  FaPlus
+  FaPlus,
+  FaSmile,
+  FaLaughBeam,
+  FaBook,
+  FaTrophy,
+  FaGrinStars,
+  FaRegMeh,
+  FaBed,
+  FaSadTear,
+  FaMeh
 } from 'react-icons/fa';
 import DiaryFormModal from '../components/DiaryFormModal';
 
@@ -217,38 +226,14 @@ const MoodTag = styled.div<{ mood: string }>`
     }
   }}
   
+  svg {
+    margin-right: 8px;
+    font-size: 1rem;
+  }
+  
   &::before {
     content: '';
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    margin-right: 8px;
-    
-    ${({ mood }) => {
-      switch(mood) {
-        case 'happy':
-          return 'background-color: #1565C0;';
-        case 'joyful':
-          return 'background-color: #2E7D32;';
-        case 'reflective':
-          return 'background-color: #00838F;';
-        case 'accomplished':
-          return 'background-color: #E65100;';
-        case 'excited':
-          return 'background-color: #6A1B9A;';
-        case 'calm':
-          return 'background-color: #37474F;';
-        case 'tired':
-          return 'background-color: #F57F17;';
-        case 'sad':
-          return 'background-color: #4527A0;';
-        case 'neutral':
-          return 'background-color: #455A64;';
-        default:
-          return 'background-color: #455A64;';
-      }
-    }}
+    display: none; /* 隐藏原来的圆点，因为我们现在使用图标 */
   }
 `;
 
@@ -317,6 +302,15 @@ const TypedFaChevronRight = FaChevronRight as React.FC<any>;
 const TypedFaArrowLeft = FaArrowLeft as React.FC<any>;
 const TypedFaEdit = FaEdit as React.FC<any>;
 const TypedFaPlus = FaPlus as React.FC<any>;
+const TypedFaSmile = FaSmile as React.FC<any>;
+const TypedFaLaughBeam = FaLaughBeam as React.FC<any>;
+const TypedFaBook = FaBook as React.FC<any>;
+const TypedFaTrophy = FaTrophy as React.FC<any>;
+const TypedFaGrinStars = FaGrinStars as React.FC<any>;
+const TypedFaRegMeh = FaRegMeh as React.FC<any>;
+const TypedFaBed = FaBed as React.FC<any>;
+const TypedFaSadTear = FaSadTear as React.FC<any>;
+const TypedFaMeh = FaMeh as React.FC<any>;
 
 // 获取某月的天数
 const getDaysInMonth = (year: number, month: number) => {
@@ -721,6 +715,31 @@ const Diary: React.FC = () => {
     return labels[mood] || mood;
   };
 
+  // 获取心情图标函数
+  const getMoodIcon = (mood: string) => {
+    switch(mood) {
+      case 'happy':
+        return <TypedFaSmile />;
+      case 'joyful':
+        return <TypedFaLaughBeam />;
+      case 'reflective':
+        return <TypedFaBook />;
+      case 'accomplished':
+        return <TypedFaTrophy />;
+      case 'excited':
+        return <TypedFaGrinStars />;
+      case 'calm':
+        return <TypedFaRegMeh />;
+      case 'tired':
+        return <TypedFaBed />;
+      case 'sad':
+        return <TypedFaSadTear />;
+      case 'neutral':
+      default:
+        return <TypedFaMeh />;
+    }
+  };
+
   // Modified renderDiaryDetail to include Edit button
   const renderDiaryDetail = () => {
     if (isDetailLoading) {
@@ -752,6 +771,7 @@ const Diary: React.FC = () => {
               </DiaryHeader>
               <DiaryContent>{selectedDiary.content}</DiaryContent>
               <MoodTag mood={selectedDiary.mood}>
+                {getMoodIcon(selectedDiary.mood)}
                 {getMoodLabel(selectedDiary.mood)}
               </MoodTag>
             </DiaryDetailView>
