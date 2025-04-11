@@ -755,13 +755,28 @@ const Diary: React.FC = () => {
     }
 
     const isEmpty = (selectedDiary as any).isEmpty;
+    
+    // 判断所选日期是否在未来
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // 重置时间部分，只比较日期
+    const diaryDate = new Date(selectedDiary.date);
+    const isFutureDate = diaryDate > today;
 
     return (
         <div>
           {isEmpty ? (
             <EmptyDiaryMessage>
-              <h3>{selectedDiary.date} 又又又忘记写啦</h3>
-              <p>快补上吧</p>
+              {isFutureDate ? (
+                <>
+                  <h3>这一天还没到，敬请期待</h3>
+                  <p>时间会带来美好的回忆</p>
+                </>
+              ) : (
+                <>
+                  <h3>{selectedDiary.date} 又又又忘记写啦</h3>
+                  <p>快补上吧</p>
+                </>
+              )}
             </EmptyDiaryMessage>
           ) : (
             <DiaryDetailView>
