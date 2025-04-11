@@ -32,10 +32,14 @@ const drift = keyframes`
 // 气泡容器 - 改为相对定位，并提供足够空间
 const BubblesContainer = styled.div`
   position: relative;
-  min-height: 500px;
+  min-height: 400px;
   width: 100%;
   margin: 20px 0;
   overflow: hidden;
+  
+  @media (max-width: 768px) {
+    min-height: 350px;
+  }
 `;
 
 // 手绘风泡泡 - 使用绝对定位实现自由漂浮
@@ -56,11 +60,15 @@ const Bubble = styled(motion.div)<{
   align-items: center;
   cursor: pointer;
   position: absolute;
-  left: ${props => props.$left}%;
+  left: ${props => props.$left}px;
   top: ${props => props.$top}px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
   z-index: ${props => Math.floor(props.$left % 3)};
+  
+  @media (max-width: 768px) {
+    padding: 12px 16px;
+  }
   
   &:nth-child(3n) {
     animation: ${float} 4s ease-in-out infinite;
@@ -84,48 +92,27 @@ const Bubble = styled(motion.div)<{
 `;
 
 // 气泡图标
-const BubbleIcon = styled.div`
-  font-size: 1.6rem;
+const BubbleIcon = styled.div<{ $size: number }>`
+  font-size: ${props => props.$size <= 70 ? '1.2rem' : '1.6rem'};
   margin-bottom: 8px;
   text-align: center;
+  
+  @media (max-width: 768px) {
+    font-size: ${props => props.$size <= 70 ? '1rem' : '1.4rem'};
+    margin-bottom: 4px;
+  }
 `;
 
 // 时间显示
-const TimeLabel = styled.div`
-  font-size: 0.7rem;
+const TimeLabel = styled.div<{ $size: number }>`
+  font-size: ${props => props.$size <= 70 ? '0.6rem' : '0.7rem'};
   color: rgba(0, 0, 0, 0.5);
   text-align: center;
   font-weight: 500;
-`;
-
-// 分页按钮
-const PaginationButton = styled.button`
-  background: white;
-  border: none;
-  border-radius: 30px;
-  padding: 8px 16px;
-  margin: 10px 5px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  color: #666;
-  transition: all 0.2s ease;
   
-  &:hover {
-    background: #f8f8f8;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  @media (max-width: 768px) {
+    font-size: ${props => props.$size <= 70 ? '0.5rem' : '0.6rem'};
   }
-  
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const PaginationContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
 `;
 
 // 消息弹窗背景
@@ -153,6 +140,11 @@ const MessageModalContent = styled(motion.div)`
   width: 400px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
   position: relative;
+  
+  @media (max-width: 768px) {
+    padding: 20px;
+    width: 85%;
+  }
 `;
 
 // 消息内容
@@ -164,6 +156,11 @@ const MessageText = styled.div`
   word-break: break-word;
   font-family: 'Courier New', monospace;
   color: #333;
+  
+  @media (max-width: 768px) {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
 `;
 
 // 消息时间
@@ -171,6 +168,10 @@ const MessageTime = styled.div`
   font-size: 0.9rem;
   color: #888;
   text-align: right;
+  
+  @media (max-width: 768px) {
+    font-size: 0.8rem;
+  }
 `;
 
 // 关闭按钮
@@ -204,54 +205,92 @@ const getRandomGradient = (): string => {
   return gradients[Math.floor(Math.random() * gradients.length)];
 };
 
-// 随机选择气泡图标
+// 随机选择气泡图标 - 使用更兼容的表情符号
 const getRandomIcon = (): string => {
-  const icons = ['💭', '✨', '🧩', '🎐', '🌈', '🍬', '🫧', '🎨'];
+  // 使用更基础、广泛支持的表情符号
+  const icons = ['💬', '🌟', '❤️', '🎵', '🎨', '🌈', '🎁', '🔔'];
   return icons[Math.floor(Math.random() * icons.length)];
 };
 
-// 生成随机大小
-const getRandomSize = (): number => {
-  // 范围：80px - 120px
-  return Math.floor(Math.random() * 40) + 80;
+// 生成随机大小 - 考虑移动设备
+const getRandomSize = (isMobile: boolean): number => {
+  if (isMobile) {
+    // 移动端范围：60px - 90px
+    return Math.floor(Math.random() * 30) + 60;
+  } else {
+    // 桌面端范围：80px - 120px
+    return Math.floor(Math.random() * 40) + 80;
+  }
 };
 
 // 检测两个气泡是否重叠
 const isOverlapping = (
   bubble1: { left: number; top: number; size: number },
-  bubble2: { left: number; top: number; size: number },
-  containerWidth: number
+  bubble2: { left: number; top: number; size: number }
 ) => {
-  // 将百分比转换为像素
-  const left1 = (bubble1.left / 100) * containerWidth;
-  const left2 = (bubble2.left / 100) * containerWidth;
-  
-  // 计算两个气泡中心点之间的距离
-  const dx = left1 - left2;
+  // 直接使用像素计算距离
+  const dx = bubble1.left - bubble2.left;
   const dy = bubble1.top - bubble2.top;
   const distance = Math.sqrt(dx * dx + dy * dy);
   
-  // 计算两个气泡半径之和（一个简单的近似值）
-  const minDistance = (bubble1.size + bubble2.size) / 2;
+  // 计算两个气泡半径之和
+  const minDistance = (bubble1.size + bubble2.size) / 2 * 0.9;
   
   // 如果距离小于半径之和，则认为重叠
   return distance < minDistance;
 };
 
-// 生成不重叠的气泡位置
-const generateNonOverlappingPositions = (
-  count: number, 
-  containerWidth: number, 
-  containerHeight: number
-): Array<{left: number; top: number; size: number}> => {
+// 检测设备是否为移动设备
+const isMobileDevice = (): boolean => {
+  return window.innerWidth <= 768;
+};
+
+// 计算屏幕空间可以放下多少个气泡（自动适应）
+const calculateMaxBubbles = (
+  containerWidth: number,
+  containerHeight: number,
+  whispers: Whisper[]
+): {positions: Array<{left: number; top: number; size: number}>, count: number} => {
   const positions: Array<{left: number; top: number; size: number}> = [];
+  let count = 0;
   const maxAttempts = 50; // 最大尝试次数
+  const isMobile = isMobileDevice();
   
-  for (let i = 0; i < count; i++) {
+  // 移动设备和桌面设备的布局参数差异
+  const layoutParams = {
+    paddingLeft: 20, // 左边距，单位像素
+    paddingRight: 20, // 右边距，单位像素
+    paddingTop: 20, // 上边距，单位像素
+    paddingBottom: isMobile ? 100 : 150, // 下边距，单位像素
+    minSize: isMobile ? 50 : 60, // 移动设备最小气泡尺寸
+    maxInitialBubbles: isMobile ? 8 : 12, // 移动设备初始显示更少的气泡
+  };
+  
+  // 限制尝试的气泡数量，避免移动设备过度拥挤
+  const maxBubblesToTry = Math.min(whispers.length, layoutParams.maxInitialBubbles);
+  
+  // 可用空间
+  const usableWidth = containerWidth - layoutParams.paddingLeft - layoutParams.paddingRight;
+  const usableHeight = containerHeight - layoutParams.paddingTop - layoutParams.paddingBottom;
+  
+  // 尝试添加气泡，直到无法再添加为止
+  for (let i = 0; i < maxBubblesToTry; i++) {
+    // 生成气泡尺寸
+    const bubbleSize = getRandomSize(isMobile);
+    
+    // 确保气泡完全在可用区域内
+    const maxLeftPosition = usableWidth - bubbleSize;
+    const maxTopPosition = usableHeight - bubbleSize;
+    
+    // 如果可用空间不足，退出循环
+    if (maxLeftPosition <= 0 || maxTopPosition <= 0) {
+      break;
+    }
+    
     let newBubble = {
-      left: Math.random() * 80, // 0-80%
-      top: Math.random() * (containerHeight - 150), // 避免超出底部
-      size: getRandomSize()
+      left: layoutParams.paddingLeft + Math.random() * maxLeftPosition,
+      top: layoutParams.paddingTop + Math.random() * maxTopPosition,
+      size: bubbleSize
     };
     
     let attempts = 0;
@@ -262,13 +301,13 @@ const generateNonOverlappingPositions = (
       overlapping = false;
       
       for (const existingBubble of positions) {
-        if (isOverlapping(newBubble, existingBubble, containerWidth)) {
+        if (isOverlapping(newBubble, existingBubble)) {
           overlapping = true;
-          // 生成新的随机位置
+          // 生成新的随机位置，但保持在安全边界内
           newBubble = {
-            left: Math.random() * 80,
-            top: Math.random() * (containerHeight - 150),
-            size: getRandomSize()
+            left: layoutParams.paddingLeft + Math.random() * maxLeftPosition,
+            top: layoutParams.paddingTop + Math.random() * maxTopPosition,
+            size: getRandomSize(isMobile)
           };
           break;
         }
@@ -279,15 +318,21 @@ const generateNonOverlappingPositions = (
     
     // 如果尝试多次仍然不行，可能屏幕空间不足，就减小气泡尺寸再试一次
     if (overlapping && attempts >= maxAttempts) {
-      newBubble.size = 60; // 较小的尺寸
+      const smallSize = layoutParams.minSize;
+      
+      // 重新计算小尺寸气泡的可用空间
+      const smallMaxLeftPosition = usableWidth - smallSize;
+      const smallMaxTopPosition = usableHeight - smallSize;
+      
+      newBubble.size = smallSize;
       
       for (let j = 0; j < 20; j++) {
-        newBubble.left = Math.random() * 80;
-        newBubble.top = Math.random() * (containerHeight - 150);
+        newBubble.left = layoutParams.paddingLeft + Math.random() * smallMaxLeftPosition;
+        newBubble.top = layoutParams.paddingTop + Math.random() * smallMaxTopPosition;
         
         let stillOverlapping = false;
         for (const existingBubble of positions) {
-          if (isOverlapping(newBubble, existingBubble, containerWidth)) {
+          if (isOverlapping(newBubble, existingBubble)) {
             stillOverlapping = true;
             break;
           }
@@ -300,15 +345,18 @@ const generateNonOverlappingPositions = (
       }
     }
     
-    // 即使多次尝试后仍然重叠，也添加这个气泡（但保持小尺寸）
+    // 如果经过多次尝试后还是重叠，表示空间不足
+    if (overlapping && attempts >= maxAttempts) {
+      break; // 无法再添加更多气泡
+    }
+    
+    // 添加这个气泡
     positions.push(newBubble);
+    count++;
   }
   
-  return positions;
+  return { positions, count };
 };
-
-// 确定每页显示的气泡数量
-const BUBBLES_PER_PAGE = 6; // 可以根据屏幕大小调整
 
 interface WhisperBubblesProps {
   whispers: Whisper[];
@@ -321,33 +369,67 @@ const WhisperBubbles: React.FC<WhisperBubblesProps> = ({ whispers }) => {
     top: number;
     size: number;
   }>>([]);
-  const [currentPage, setCurrentPage] = useState(0);
+  const [visibleWhispers, setVisibleWhispers] = useState<Whisper[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
   
-  // 分页处理后的气泡列表
-  const paginatedWhispers = React.useMemo(() => {
-    const startIndex = currentPage * BUBBLES_PER_PAGE;
-    return whispers.slice(startIndex, startIndex + BUBBLES_PER_PAGE);
-  }, [whispers, currentPage]);
+  // 检测移动设备
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
-  // 总页数
-  const totalPages = Math.ceil(whispers.length / BUBBLES_PER_PAGE);
-  
-  // 初始化气泡位置
+  // 初始化气泡位置，根据容器大小自动计算能显示的气泡数量
   useEffect(() => {
     if (containerRef.current) {
       const containerWidth = containerRef.current.offsetWidth;
-      const containerHeight = 500; // 容器高度
+      const containerHeight = isMobile ? 350 : 500; // 根据设备类型调整容器高度
       
-      const positions = generateNonOverlappingPositions(
-        paginatedWhispers.length,
-        containerWidth,
-        containerHeight
-      );
-      
-      setBubblePositions(positions);
+      const result = calculateMaxBubbles(containerWidth, containerHeight, whispers);
+      setBubblePositions(result.positions);
+      setVisibleWhispers(whispers.slice(0, result.count));
     }
-  }, [paginatedWhispers]);
+  }, [whispers, isMobile]);
+  
+  // 窗口大小变化时重新计算
+  useEffect(() => {
+    const handleResize = () => {
+      if (containerRef.current) {
+        const containerWidth = containerRef.current.offsetWidth;
+        const containerHeight = isMobile ? 350 : 500;
+        
+        const result = calculateMaxBubbles(containerWidth, containerHeight, whispers);
+        setBubblePositions(result.positions);
+        setVisibleWhispers(whispers.slice(0, result.count));
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [whispers, isMobile]);
+  
+  // 防止截断的调试信息
+  useEffect(() => {
+    // 检查气泡是否有任何部分超出容器
+    if (containerRef.current && bubblePositions.length > 0) {
+      const containerWidth = containerRef.current.offsetWidth;
+      const containerHeight = containerRef.current.offsetHeight;
+      
+      bubblePositions.forEach(position => {
+        const rightEdge = position.left + position.size;
+        const bottomEdge = position.top + position.size;
+        
+        if (rightEdge > containerWidth || bottomEdge > containerHeight) {
+          console.warn('气泡可能超出容器边界:', position);
+        }
+      });
+    }
+  }, [bubblePositions]);
   
   // 点击气泡，显示完整内容
   const handleBubbleClick = (whisper: Whisper) => {
@@ -359,32 +441,19 @@ const WhisperBubbles: React.FC<WhisperBubblesProps> = ({ whispers }) => {
     setSelectedWhisper(null);
   };
   
-  // 页面导航
-  const goToNextPage = () => {
-    if (currentPage < totalPages - 1) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
-  
-  const goToPrevPage = () => {
-    if (currentPage > 0) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
-  
   return (
     <>
       <BubblesContainer ref={containerRef}>
-        {paginatedWhispers.map((whisper, index) => {
+        {visibleWhispers.map((whisper, index) => {
           // 为每个悄悄话生成随机渐变色和图标
           const gradient = getRandomGradient();
           const icon = getRandomIcon();
           
           // 获取位置信息
           const position = bubblePositions[index] || {
-            left: 0,
-            top: 0,
-            size: 100
+            left: 20,
+            top: 20,
+            size: isMobile ? 70 : 100
           };
           
           return (
@@ -398,33 +467,12 @@ const WhisperBubbles: React.FC<WhisperBubblesProps> = ({ whispers }) => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.98 }}
             >
-              <BubbleIcon>{icon}</BubbleIcon>
-              <TimeLabel>{formatWhisperTime(whisper.timestamp)}</TimeLabel>
+              <BubbleIcon $size={position.size}>{icon}</BubbleIcon>
+              <TimeLabel $size={position.size}>{formatWhisperTime(whisper.timestamp)}</TimeLabel>
             </Bubble>
           );
         })}
       </BubblesContainer>
-      
-      {/* 分页控制 */}
-      {totalPages > 1 && (
-        <PaginationContainer>
-          <PaginationButton 
-            onClick={goToPrevPage} 
-            disabled={currentPage === 0}
-          >
-            上一页
-          </PaginationButton>
-          <span style={{ margin: '0 10px', lineHeight: '36px', color: '#666' }}>
-            {currentPage + 1} / {totalPages}
-          </span>
-          <PaginationButton 
-            onClick={goToNextPage} 
-            disabled={currentPage === totalPages - 1}
-          >
-            下一页
-          </PaginationButton>
-        </PaginationContainer>
-      )}
       
       {/* 消息弹窗 */}
       <AnimatePresence>
