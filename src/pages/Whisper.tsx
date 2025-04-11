@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { getAccessLogs, formatTimeAgo } from '../services/accessLogService';
-import { getAllWhispers, sendWhisper } from '../services/whisperService';
+import { getAllWhispers, sendWhisper, deleteWhisper } from '../services/whisperService';
 import type { Whisper as WhisperType } from '../services/whisperService';
 import VisitNotification, { NotificationMessage } from '../components/VisitNotification';
 import WhisperBubbles from '../components/WhisperBubbles';
@@ -162,7 +162,8 @@ const WhisperPage: React.FC = () => {
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       
-      const logs = await getAccessLogs(sevenDaysAgo.toISOString());
+      // 传递 navigate 给 getAccessLogs
+      const logs = await getAccessLogs(navigate, sevenDaysAgo.toISOString());
       
       // 按时间排序，最近的排在前面
       const sortedLogs = [...logs].sort((a, b) => 
@@ -193,8 +194,11 @@ const WhisperPage: React.FC = () => {
       
       setNotificationMessages(messages);
     } catch (err) {
-      setAccessLogsError('获取访问记录失败，请稍后再试');
-      console.error('获取访问日志失败:', err);
+      // 如果错误是认证错误，它已经被 handleApiResponse 处理（跳转），无需额外操作
+      if (!(err instanceof Error && err.message.includes("认证已过期"))) {
+        setAccessLogsError('获取访问记录失败，请稍后再试');
+        console.error('获取访问日志失败:', err);
+      }
     } finally {
       setIsAccessLogsLoading(false);
     }
@@ -206,11 +210,15 @@ const WhisperPage: React.FC = () => {
       setIsWhispersLoading(true);
       setWhispersError(null);
       
-      const fetchedWhispers = await getAllWhispers();
+      // 传递 navigate 给 getAllWhispers
+      const fetchedWhispers = await getAllWhispers(navigate);
       setWhispers(fetchedWhispers);
     } catch (err) {
-      setWhispersError('获取悄悄话失败，请稍后再试');
-      console.error('获取悄悄话失败:', err);
+      // 如果错误是认证错误，它已经被 handleApiResponse 处理（跳转），无需额外操作
+      if (!(err instanceof Error && err.message.includes("认证已过期"))) {
+        setWhispersError('获取悄悄话失败，请稍后再试');
+        console.error('获取悄悄话失败:', err);
+      }
     } finally {
       setIsWhispersLoading(false);
     }
@@ -221,23 +229,36 @@ const WhisperPage: React.FC = () => {
     try {
       setIsSending(true);
       
-      // 发送悄悄话
-      const newWhisper = await sendWhisper(message);
+      // 传递 navigate 给 sendWhisper
+      const newWhisper = await sendWhisper(navigate, message);
       
       // 更新悄悄话列表
       setWhispers(prevWhispers => [newWhisper, ...prevWhispers]);
     } catch (err) {
-      console.error('发送悄悄话失败:', err);
-      alert('发送失败，请稍后再试');
+      // 如果错误是认证错误，它已经被 handleApiResponse 处理（跳转），无需额外操作
+      if (!(err instanceof Error && err.message.includes("认证已过期"))) {
+        console.error('发送悄悄话失败:', err);
+        alert('发送失败，请稍后再试');
+      }
     } finally {
       setIsSending(false);
     }
   };
   
-  // 处理悄悄话删除
-  const handleWhisperDeleted = (whisperId: string) => {
-    // 从状态中移除已删除的悄悄话
-    setWhispers(prevWhispers => prevWhispers.filter(w => w.id !== whisperId));
+  // 处理悄悄话删除的回调 (从 WhisperBubbles 组件传来)
+  const handleWhisperDeleted = async (whisperId: string) => {
+    try {
+      // 调用 deleteWhisper 服务函数，传递 navigate
+      await deleteWhisper(navigate, whisperId);
+      // 从状态中移除已删除的悄悄话
+      setWhispers(prevWhispers => prevWhispers.filter(w => w.id !== whisperId));
+    } catch (err) {
+      // 如果错误是认证错误，它已经被 handleApiResponse 处理（跳转），无需额外操作
+      if (!(err instanceof Error && err.message.includes("认证已过期"))) {
+        console.error(`删除悄悄话 (id: ${whisperId}) 失败:`, err);
+        alert('删除失败，请稍后再试');
+      }
+    }
   };
   
   return (
@@ -264,18 +285,19 @@ const WhisperPage: React.FC = () => {
           ) : whispersError ? (
             <ErrorContainer>{whispersError}</ErrorContainer>
           ) : whispers.length === 0 ? (
-            <EmptyState>还没有任何悄悄话，快来留下第一个吧！</EmptyState>
+            <EmptyState>这里好安静，快来留下第一个悄悄话吧！</EmptyState>
           ) : (
-            <WhisperBubbles 
-              whispers={whispers} 
+            <WhisperBubbles
+              whispers={whispers}
               onWhisperDeleted={handleWhisperDeleted}
+              navigate={navigate}
             />
           )}
         </WhispersContainer>
       </ContentContainer>
       
       <FooterText>
-        点击彩色泡泡，查看神秘留言 ✨ 每条消息仅能查看一次，阅后即焚
+        戳戳彩色泡泡，解锁神秘留言 ✨ 泡泡被戳破就会消失哦
       </FooterText>
       
       {/* 悄悄话输入框 */}

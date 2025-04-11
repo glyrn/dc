@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Whisper, formatWhisperTime, deleteWhisper } from '../services/whisperService';
+import type { NavigateFunction } from 'react-router-dom';
 
 // 浮动动画
 const float = keyframes`
@@ -147,11 +148,39 @@ const MessageModalContent = styled(motion.div)`
   }
 `;
 
+// 阅后即焚标签
+const EphemeralLabel = styled.div`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: linear-gradient(90deg, #ff9a9e 0%, #fad0c4 100%);
+  color: white;
+  font-size: 0.65rem;
+  padding: 1px 5px;
+  border-radius: 16px;
+  box-shadow: 0 1px 4px rgba(255, 154, 158, 0.3);
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  flex-shrink: 0;
+  
+  @media (max-width: 768px) {
+    font-size: 0.6rem;
+    padding: 1px 4px;
+  }
+`;
+
+// 火焰图标样式
+const FlameIcon = styled.span`
+  font-size: 0.65rem;
+`;
+
 // 消息内容
 const MessageText = styled.div`
+  flex-grow: 1;
   font-size: 1.1rem;
   line-height: 1.6;
-  margin-bottom: 15px;
   white-space: pre-wrap;
   word-break: break-word;
   font-family: 'Courier New', monospace;
@@ -168,43 +197,23 @@ const MessageTime = styled.div`
   font-size: 0.9rem;
   color: #888;
   text-align: right;
+  flex-grow: 1;
   
   @media (max-width: 768px) {
     font-size: 0.8rem;
   }
 `;
 
-// 阅后即焚标签
-const EphemeralLabel = styled.div`
-  position: absolute;
-  top: -12px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: linear-gradient(90deg, #ff9a9e 0%, #fad0c4 100%);
-  color: white;
-  font-size: 0.85rem;
-  padding: 5px 15px;
-  border-radius: 30px;
-  box-shadow: 0 3px 10px rgba(255, 154, 158, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  min-width: 100px;
-  
-  @media (max-width: 768px) {
-    font-size: 0.75rem;
-    padding: 4px 12px;
-    min-width: 90px;
-  }
+// 消息容器，包含标签和文本
+const MessageContainer = styled.div`
+  margin-bottom: 15px;
 `;
 
-// 火焰图标样式
-const FlameIcon = styled.span`
-  font-size: 0.9rem;
+// 底部信息栏
+const BottomInfoBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 `;
 
 // 关闭按钮
@@ -391,12 +400,14 @@ const calculateMaxBubbles = (
   return { positions, count };
 };
 
+// Props 接口
 interface WhisperBubblesProps {
   whispers: Whisper[];
   onWhisperDeleted?: (whisperId: string) => void;
+  navigate: NavigateFunction;
 }
 
-const WhisperBubbles: React.FC<WhisperBubblesProps> = ({ whispers, onWhisperDeleted }) => {
+const WhisperBubbles: React.FC<WhisperBubblesProps> = ({ whispers, onWhisperDeleted, navigate }) => {
   const [selectedWhisper, setSelectedWhisper] = useState<Whisper | null>(null);
   const [bubblePositions, setBubblePositions] = useState<Array<{
     left: number;
@@ -407,6 +418,7 @@ const WhisperBubbles: React.FC<WhisperBubblesProps> = ({ whispers, onWhisperDele
   const containerRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   // 检测移动设备
   useEffect(() => {
@@ -419,34 +431,21 @@ const WhisperBubbles: React.FC<WhisperBubblesProps> = ({ whispers, onWhisperDele
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
   
-  // 初始化气泡位置，根据容器大小自动计算能显示的气泡数量
+  // 重新计算气泡位置的函数
   useEffect(() => {
-    if (containerRef.current) {
-      const containerWidth = containerRef.current.offsetWidth;
-      const containerHeight = isMobile ? 350 : 500; // 根据设备类型调整容器高度
-      
-      const result = calculateMaxBubbles(containerWidth, containerHeight, whispers);
-      setBubblePositions(result.positions);
-      setVisibleWhispers(whispers.slice(0, result.count));
-    }
-  }, [whispers, isMobile]);
-  
-  // 窗口大小变化时重新计算
-  useEffect(() => {
-    const handleResize = () => {
+    const calculateAndSetPositions = () => {
       if (containerRef.current) {
-        const containerWidth = containerRef.current.offsetWidth;
-        const containerHeight = isMobile ? 350 : 500;
-        
-        const result = calculateMaxBubbles(containerWidth, containerHeight, whispers);
-        setBubblePositions(result.positions);
-        setVisibleWhispers(whispers.slice(0, result.count));
+        const { width, height } = containerRef.current.getBoundingClientRect();
+        // 传递 whispers 到 calculateMaxBubbles
+        const { positions, count } = calculateMaxBubbles(width, height, whispers);
+        setBubblePositions(positions);
+        setVisibleWhispers(whispers.slice(0, count));
       }
     };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [whispers, isMobile]);
+    calculateAndSetPositions();
+    window.addEventListener('resize', calculateAndSetPositions);
+    return () => window.removeEventListener('resize', calculateAndSetPositions);
+  }, [whispers, isMobile]); // 当whispers或isMobile变化时重新计算
   
   // 防止截断的调试信息
   useEffect(() => {
@@ -466,96 +465,98 @@ const WhisperBubbles: React.FC<WhisperBubblesProps> = ({ whispers, onWhisperDele
     }
   }, [bubblePositions]);
   
-  // 点击气泡，显示完整内容
+  // 点击气泡打开弹窗
   const handleBubbleClick = (whisper: Whisper) => {
     setSelectedWhisper(whisper);
+    setIsModalOpen(true);
   };
   
-  // 关闭消息弹窗并删除悄悄话
+  // 关闭弹窗并处理删除
   const closeModal = async () => {
-    if (selectedWhisper && !isDeleting) {
-      try {
-        setIsDeleting(true);
-        
-        // 删除悄悄话
-        await deleteWhisper(selectedWhisper.id);
-        
-        // 通知父组件删除成功
-        if (onWhisperDeleted) {
-          onWhisperDeleted(selectedWhisper.id);
-        }
-        
-        // 从本地状态移除该悄悄话
-        setVisibleWhispers(prev => prev.filter(w => w.id !== selectedWhisper.id));
-        
-        // 关闭弹窗
-        setSelectedWhisper(null);
-      } catch (error) {
-        console.error('删除悄悄话失败:', error);
-        // 即使删除失败，也关闭弹窗
-        setSelectedWhisper(null);
-      } finally {
-        setIsDeleting(false);
+    if (isDeleting || !selectedWhisper) return;
+    setIsDeleting(true);
+    try {
+      // 删除悄悄话，传递 navigate
+      await deleteWhisper(navigate, selectedWhisper.id);
+      
+      // 通知父组件删除成功
+      if (onWhisperDeleted) {
+        onWhisperDeleted(selectedWhisper.id);
       }
-    } else {
+      // 关闭弹窗
       setSelectedWhisper(null);
+      setIsModalOpen(false);
+    } catch (error) {
+       // 如果错误是认证错误，已经被 handleApiResponse 处理（跳转）
+       if (!(error instanceof Error && error.message.includes("认证已过期"))) {
+          console.error('删除悄悄话失败:', error);
+          alert('删除失败，请稍后再试。');
+       }
+      // 不论成功或失败，最终都要重置删除状态
+      // 保持弹窗打开，让用户知道删除失败
+    } finally {
+      setIsDeleting(false);
     }
   };
   
   return (
     <>
       <BubblesContainer ref={containerRef}>
-        {visibleWhispers.map((whisper, index) => {
-          // 为每个悄悄话生成随机渐变色和图标
-          const gradient = getRandomGradient();
-          const icon = getRandomIcon();
-          
-          // 获取位置信息
-          const position = bubblePositions[index] || {
-            left: 20,
-            top: 20,
-            size: isMobile ? 70 : 100
-          };
-          
-          return (
-            <Bubble
-              key={whisper.id}
-              $gradient={gradient}
-              $left={position.left}
-              $top={position.top}
-              $size={position.size}
-              onClick={() => handleBubbleClick(whisper)}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <BubbleIcon $size={position.size}>{icon}</BubbleIcon>
-              <TimeLabel $size={position.size}>{formatWhisperTime(whisper.timestamp)}</TimeLabel>
-            </Bubble>
-          );
-        })}
+        <AnimatePresence>
+          {visibleWhispers.map((whisper, index) => {
+            if (!bubblePositions[index]) return null;
+            const { left, top, size } = bubblePositions[index];
+            const gradient = getRandomGradient();
+            const icon = getRandomIcon();
+
+            return (
+              <Bubble
+                key={whisper.id}
+                $gradient={gradient}
+                $left={left}
+                $top={top}
+                $size={size}
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.5 }}
+                transition={{ type: 'spring', stiffness: 150, damping: 15, delay: index * 0.05 }}
+                onClick={() => handleBubbleClick(whisper)}
+              >
+                <BubbleIcon $size={size}>{icon}</BubbleIcon>
+                <TimeLabel $size={size}>{formatWhisperTime(whisper.timestamp)}</TimeLabel>
+              </Bubble>
+            );
+          })}
+        </AnimatePresence>
       </BubblesContainer>
-      
+
       {/* 消息弹窗 */}
       <AnimatePresence>
-        {selectedWhisper && (
+        {isModalOpen && selectedWhisper && (
           <MessageModalOverlay
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={closeModal}
+            onClick={closeModal} // 点击背景关闭并删除
           >
             <MessageModalContent
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              onClick={e => e.stopPropagation()}
+              initial={{ y: 50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 50, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+              onClick={(e) => e.stopPropagation()} // 防止点击内容区关闭
             >
-              <EphemeralLabel>
-                <FlameIcon>🔥</FlameIcon>阅后即焚
-              </EphemeralLabel>
-              <CloseButton onClick={closeModal}>&times;</CloseButton>
-              <MessageText>{selectedWhisper.message}</MessageText>
-              <MessageTime>{formatWhisperTime(selectedWhisper.timestamp)}</MessageTime>
+              <CloseButton onClick={closeModal} disabled={isDeleting}>&times;</CloseButton>
+              <MessageContainer>
+                <MessageText>{selectedWhisper.message}</MessageText>
+              </MessageContainer>
+              <BottomInfoBar>
+                <EphemeralLabel>
+                  <FlameIcon>🔥</FlameIcon> 阅后即焚
+                </EphemeralLabel>
+                <MessageTime>{formatWhisperTime(selectedWhisper.timestamp)}</MessageTime>
+              </BottomInfoBar>
+              {isDeleting && <div style={{ position: 'absolute', bottom: '10px', left: '50%', transform: 'translateX(-50%)', fontSize: '0.8rem', color: '#999' }}>处理中...</div>}
             </MessageModalContent>
           </MessageModalOverlay>
         )}

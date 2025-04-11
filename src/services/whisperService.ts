@@ -1,5 +1,6 @@
 import { API_BASE_URL } from '../config';
-import { getAuthToken } from './authService';
+import { getAuthToken, handleApiResponse } from './authService';
+import type { NavigateFunction } from 'react-router-dom';
 
 export interface Whisper {
   id: string;
@@ -8,7 +9,10 @@ export interface Whisper {
 }
 
 // 获取所有悄悄话
-export const getAllWhispers = async (limit?: number): Promise<Whisper[]> => {
+export const getAllWhispers = async (
+  navigate: NavigateFunction,
+  limit?: number
+): Promise<Whisper[]> => {
   const token = getAuthToken();
   if (!token) {
     throw new Error('用户未登录');
@@ -27,16 +31,15 @@ export const getAllWhispers = async (limit?: number): Promise<Whisper[]> => {
     },
   });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.error || '获取悄悄话失败');
-  }
-
-  return await response.json();
+  const data = await handleApiResponse<Whisper[]>(response, navigate);
+  return data;
 };
 
 // 发送悄悄话
-export const sendWhisper = async (message: string): Promise<Whisper> => {
+export const sendWhisper = async (
+  navigate: NavigateFunction,
+  message: string
+): Promise<Whisper> => {
   const token = getAuthToken();
   if (!token) {
     throw new Error('用户未登录');
@@ -51,16 +54,15 @@ export const sendWhisper = async (message: string): Promise<Whisper> => {
     body: JSON.stringify({ message }),
   });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.error || '发送悄悄话失败');
-  }
-
-  return await response.json();
+  const data = await handleApiResponse<Whisper>(response, navigate);
+  return data;
 };
 
 // 删除悄悄话
-export const deleteWhisper = async (whisperId: string): Promise<void> => {
+export const deleteWhisper = async (
+  navigate: NavigateFunction,
+  whisperId: string
+): Promise<void> => {
   const token = getAuthToken();
   if (!token) {
     throw new Error('用户未登录');
@@ -74,10 +76,7 @@ export const deleteWhisper = async (whisperId: string): Promise<void> => {
     },
   });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.error || '删除悄悄话失败');
-  }
+  await handleApiResponse<void>(response, navigate);
 };
 
 // 格式化时间戳为友好格式
