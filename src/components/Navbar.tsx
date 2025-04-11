@@ -53,11 +53,11 @@ const NavLinks = styled.div<{ isOpen: boolean }>`
     top: 0;
     right: 0;
     height: 100vh;
-    width: 70%;
-    max-width: 300px;
+    width: 50%;
+    max-width: 220px;
     background: var(--background-color);
-    padding: 6rem 2rem;
-    gap: 2.5rem;
+    padding: 6rem 1.2rem;
+    gap: 2rem;
     z-index: 100;
     transform: ${({ isOpen }) => isOpen ? 'translateX(0)' : 'translateX(100%)'};
     transition: transform 0.3s ease-in-out;
@@ -161,9 +161,17 @@ const MenuItem = styled(Link)<{ isActive?: boolean }>`
     text-decoration: none;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
   }
+  
+  @media (max-width: 768px) {
+    font-size: 17px;
+    padding: 10px 16px;
+    font-weight: 500;
+    display: block;
+    text-align: center;
+  }
 `;
 
-// 用户身份标签容器 - PC端位于右侧
+// 用户身份标签容器 - 移动端恢复正常大小并加大
 const UserIdentityContainer = styled.div`
   position: relative;
 
@@ -173,16 +181,17 @@ const UserIdentityContainer = styled.div`
   
   @media (max-width: 768px) {
     // 移动端样式
-    margin: 0 auto 1rem auto; // 上右下左边距，使其水平居中
+    margin: 0 auto 1.2rem auto; // 增加下边距
     order: 0;
     width: auto;
     align-self: center; // 居中对齐
     display: flex;
     justify-content: center; // 内容居中
+    transform: scale(1.05); // 整体放大到105%
   }
 `;
 
-// 用户身份标签 - 修改为可点击的组件
+// 用户身份标签 - 移动端放大
 const UserIdentity = styled.div`
   display: flex;
   align-items: center;
@@ -201,18 +210,22 @@ const UserIdentity = styled.div`
   }
   
   @media (max-width: 768px) {
-    margin: 0; // 移除边距，由容器控制
-    padding: 5px 10px;
-    min-width: 100px; // 设置最小宽度
-    max-width: 150px;
-    text-align: center; // 文本居中
-    justify-content: center; // 内容居中
+    margin: 0;
+    padding: 8px 16px; // 增大内边距
+    min-width: 120px; // 增加最小宽度
+    max-width: 180px; // 增加最大宽度
+    font-size: 1.1rem; // 增大字体
+    font-weight: 500; // 增加字重
+    text-align: center;
+    justify-content: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); // 增强阴影
   }
 `;
 
+// 认证点也放大
 const IdentityDot = styled.span<{ identity: string }>`
   width: 8px;
   height: 8px;
@@ -222,6 +235,12 @@ const IdentityDot = styled.span<{ identity: string }>`
     props.identity === 'goree' ? '#3fd7eb' : 
     props.identity === 'green' ? '#3feb8f' : 
     '#b2bec3'};
+    
+  @media (max-width: 768px) {
+    width: 10px; // 增大点的大小
+    height: 10px;
+    margin-right: 4px; // 增加间距
+  }
 `;
 
 // 下拉菜单容器
@@ -242,11 +261,13 @@ const DropdownMenu = styled.div<{ isOpen: boolean }>`
   
   @media (max-width: 768px) {
     position: absolute;
-    top: 100%; // 紧贴标签底部
-    left: 50%; // 从中间开始
+    top: 100%;
+    left: 50%;
     transform: ${props => props.isOpen ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(-10px)'};
-    width: 120px;
-    margin-top: 5px; // 稍微增加一点间距
+    width: 140px;
+    margin-top: 8px;
+    padding: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
   }
 `;
 
@@ -267,6 +288,12 @@ const LogoutButton = styled.button`
   
   &:hover {
     background-color: rgba(255, 107, 107, 0.1);
+  }
+  
+  @media (max-width: 768px) {
+    font-size: 16px;
+    padding: 10px 16px;
+    font-weight: 500;
   }
 `;
 
