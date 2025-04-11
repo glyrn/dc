@@ -162,7 +162,23 @@ class DiaryService {
     const rawMood = rawEntry.mood || rawEntry[entryStructure.mood] || "";
     const date = rawEntry.date || rawEntry[entryStructure.date] || "";
 
-    const mood = moodMapping[rawMood] || defaultMood;
+    // 检查rawMood是否已经是有效的英文心情值
+    const validEnglishMoods = [
+      "happy",
+      "joyful",
+      "reflective",
+      "accomplished",
+      "excited",
+      "calm",
+      "tired",
+      "sad",
+      "neutral",
+    ];
+
+    // 如果rawMood已经是有效的英文值，直接使用，否则应用映射
+    const mood = validEnglishMoods.includes(rawMood)
+      ? rawMood
+      : moodMapping[rawMood] || defaultMood;
 
     return {
       date,
