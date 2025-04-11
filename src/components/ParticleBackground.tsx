@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
 
 const ParticleCanvas = styled.canvas`
@@ -23,11 +23,17 @@ interface Particle {
 
 const ParticleBackground: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const particles: Particle[] = [];
-  const colors = ['#fff', '#ffccdd', '#ffaaaa', '#ffdddd', '#eeeeee'];
+  const particles = useRef<Particle[]>([]).current;
+  const colors = useMemo(() => ['#fff', '#ffccdd', '#ffaaaa', '#ffdddd', '#eeeeee'], []);
+  const dimensions = useRef<{ width: number; height: number } | null>(null);
+  const isReady = useRef<boolean>(false);
   
-  // 初始化粒子
-  const initParticles = (canvas: HTMLCanvasElement) => {
+  const initParticles = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    particles.length = 0;
+    
     const count = Math.floor(canvas.width * canvas.height / 10000);
     
     for (let i = 0; i < count; i++) {
@@ -41,40 +47,9 @@ const ParticleBackground: React.FC = () => {
         color: colors[Math.floor(Math.random() * colors.length)]
       });
     }
-  };
+  }, [colors, particles]);
   
-  // 动画循环
-  const animate = (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // 更新和绘制每个粒子
-    for (const particle of particles) {
-      // 移动粒子
-      particle.x += particle.speedX;
-      particle.y += particle.speedY;
-      
-      // 处理边界
-      if (particle.x < 0) particle.x = canvas.width;
-      if (particle.x > canvas.width) particle.x = 0;
-      if (particle.y < 0) particle.y = canvas.height;
-      if (particle.y > canvas.height) particle.y = 0;
-      
-      // 绘制粒子
-      ctx.beginPath();
-      ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-      ctx.fillStyle = particle.color;
-      ctx.globalAlpha = particle.opacity;
-      ctx.fill();
-      
-      // 连接附近的粒子
-      connectParticles(particle, ctx);
-    }
-    
-    requestAnimationFrame(() => animate(canvas, ctx));
-  };
-  
-  // 连接附近的粒子
-  const connectParticles = (particle: Particle, ctx: CanvasRenderingContext2D) => {
+  const connectParticles = useCallback((particle: Particle, ctx: CanvasRenderingContext2D) => {
     for (const otherParticle of particles) {
       if (particle === otherParticle) continue;
       
@@ -93,37 +68,71 @@ const ParticleBackground: React.FC = () => {
         ctx.stroke();
       }
     }
-  };
+  }, [particles]);
   
-  // 设置canvas和开始动画
-  useEffect(() => {
+  const animate = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     
-    // 设置canvas大小
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    for (const particle of particles) {
+      particle.x += particle.speedX;
+      particle.y += particle.speedY;
+      
+      if (particle.x < 0) particle.x = canvas.width;
+      if (particle.x > canvas.width) particle.x = 0;
+      if (particle.y < 0) particle.y = canvas.height;
+      if (particle.y > canvas.height) particle.y = 0;
+      
+      ctx.beginPath();
+      ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+      ctx.fillStyle = particle.color;
+      ctx.globalAlpha = particle.opacity;
+      ctx.fill();
+      
+      connectParticles(particle, ctx);
+    }
+  }, [particles, connectParticles]);
+  
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    let animationFrameId: number;
+    
     const setCanvasSize = () => {
+      if (!canvas) return;
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+      dimensions.current = { width: canvas.width, height: canvas.height };
+      isReady.current = true;
+      initParticles();
+    };
+    
+    const startAnimation = () => {
+      if (!isReady.current || particles.length === 0) return;
+      
+      const render = () => {
+        animate();
+        animationFrameId = requestAnimationFrame(render);
+      };
+      cancelAnimationFrame(animationFrameId);
+      render();
     };
     
     setCanvasSize();
     window.addEventListener('resize', setCanvasSize);
+    startAnimation();
     
-    // 清空并初始化粒子
-    particles.length = 0;
-    initParticles(canvas);
-    
-    // 开始动画
-    animate(canvas, ctx);
-    
-    // 清理
     return () => {
       window.removeEventListener('resize', setCanvasSize);
+      cancelAnimationFrame(animationFrameId);
     };
-  }, []);
+  }, [initParticles, animate, particles]);
   
   return <ParticleCanvas ref={canvasRef} />;
 };

@@ -7,39 +7,6 @@ import { FaPlus } from 'react-icons/fa';
 // 移除未使用的 IconType 导入
 // import { IconType } from 'react-icons';
 
-// 增强的页面标题组件
-const PageTitle = styled(motion.h1)`
-  text-align: center;
-  margin: 0 auto 60px;
-  color: var(--secondary-color, #333);
-  font-size: clamp(1.8rem, 5vw, 2.5rem); // 响应式字体大小
-  font-weight: 700;
-  position: relative;
-  display: inline-block;
-  left: 50%;
-  transform: translateX(-50%);
-  
-  &:after {
-    content: '';
-    position: absolute;
-    bottom: -12px;
-    left: 10%;
-    right: 10%;
-    height: 4px;
-    border-radius: 2px;
-    background: linear-gradient(90deg, transparent, var(--accent-color, #6c5ce7), transparent);
-  }
-
-  @media (max-width: 768px) {
-    margin-bottom: 40px;
-    font-size: clamp(1.5rem, 4vw, 2rem);
-    &:after {
-      bottom: -8px;
-      height: 3px;
-    }
-  }
-`;
-
 // 时间轴主容器
 const TimelineContainer = styled.div`
   padding: 100px 20px 80px; // 增加了顶部和底部的padding

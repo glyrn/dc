@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import styled from 'styled-components';
 import { motion, useAnimation } from 'framer-motion';
 import PhotoGrid from '../components/PhotoGrid';
-import { Link } from 'react-router-dom';
 import Typewriter from '../components/Typewriter';
 
 const HomeContainer = styled.div`
@@ -54,34 +53,6 @@ const HeroSubtitle = styled(motion.h2)`
   
   @media (max-width: 480px) {
     font-size: 19px;
-  }
-`;
-
-const ActionButton = styled(motion.button)`
-  background-color: var(--accent-color);
-  color: white;
-  font-size: 17px;
-  line-height: 1.17648;
-  font-weight: 400;
-  border-radius: 980px;
-  padding: 12px 22px;
-  margin-top: 0.8rem;
-  margin-right: 20px;
-  cursor: pointer;
-  
-  &:hover {
-    background-color: #0077ed;
-  }
-`;
-
-const ActionLink = styled(Link)`
-  color: var(--accent-color);
-  font-size: 17px;
-  line-height: 1.23536;
-  text-decoration: none;
-  
-  &:hover {
-    text-decoration: underline;
   }
 `;
 

@@ -146,3 +146,50 @@ your-project-root/
     * **Content:** `{ "error": "Invalid input data" }`
     * **Code:** `500 Internal Server Error`
     * **Content:** `{ "error": "Error message description" }`
+
+## API 文档 - 日记 (Diary)
+
+API 基础路径: `[REACT_APP_API_BASE_URL]` (例如: `https://api.love.goree.tech`)
+
+### 1. 获取指定月份日记存在状态
+
+获取某年某月哪些天存在日记记录。
+
+-   **URL:** `/api/diary/month-status`
+-   **方法:** `GET`
+-   **查询参数:**
+    -   `year` (number, 必需): 年份 (e.g., 2024)
+    -   `month` (number, 必需): 月份 (1-12) (e.g., 7)
+-   **成功响应 (200 OK):**
+    -   **内容类型:** `application/json`
+    -   **响应体:** `number[]` - 包含当月有日记的日期（日）的数组。
+    ```json
+    [5, 12, 25]
+    ```
+-   **错误响应:**
+    -   `400 Bad Request`: 参数缺失或无效。
+    -   `500 Internal Server Error`: 服务器错误。
+
+### 2. 获取指定日期日记详情
+
+获取某一天的详细日记内容。
+
+-   **URL:** `/api/diary/entry`
+-   **方法:** `GET`
+-   **查询参数:**
+    -   `date` (string, 必需): 日期，格式 'YYYY-MM-DD' (e.g., "2024-07-12")
+-   **成功响应 (200 OK):**
+    -   **内容类型:** `application/json`
+    -   **响应体:** 日记对象。
+    ```json
+    {
+      "date": "YYYY-MM-DD",
+      "title": "日记标题",
+      "content": "日记内容...",
+      "mood": "心情标识符"
+    }
+    ```
+-   **错误响应:**
+    -   `404 Not Found`: 指定日期无日记。
+    -   `400 Bad Request`: `date` 参数缺失或格式错误。
+    -   `500 Internal Server Error`: 服务器错误。

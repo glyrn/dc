@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import diaryService from '../services/diaryService';
+import { FaChevronLeft, FaChevronRight, FaSpinner, FaExclamationTriangle, FaArrowLeft } from 'react-icons/fa';
 
 // 定义日记数据类型
 interface DiaryEntry {
@@ -9,6 +10,7 @@ interface DiaryEntry {
   title: string;
   content: string;
   mood: string;
+  isEmpty?: boolean;
 }
 
 // 容器样式
@@ -56,20 +58,27 @@ const WeekdayHeader = styled.div`
   color: var(--secondary-color, #333);
 `;
 
-const CalendarCell = styled.div<{ isCurrentMonth: boolean; hasEntry: boolean; isSelected: boolean }>`
+const CalendarCell = styled.div<{
+  isCurrentMonth: boolean;
+  hasEntry: boolean;
+  isSelected: boolean;
+  isToday: boolean;
+}>`
   height: 80px;
   border-radius: 12px;
   padding: 8px;
   background-color: ${props => props.isSelected ? 'var(--accent-color, #6c5ce7)' : 'white'};
   color: ${props => props.isSelected ? 'white' : props.isCurrentMonth ? '#333' : '#aaa'};
-  cursor: pointer;
+  cursor: ${props => props.isCurrentMonth ? 'pointer' : 'default'};
   transition: all 0.3s ease;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   position: relative;
-  
+  border: ${props => props.isToday ? '2px solid var(--accent-color, #6c5ce7)' : 'none'};
+  opacity: ${props => props.isCurrentMonth ? 1 : 0.5};
+
   &:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+    transform: ${props => props.isCurrentMonth ? 'translateY(-3px)' : 'none'};
+    box-shadow: ${props => props.isCurrentMonth ? '0 6px 15px rgba(0, 0, 0, 0.1)' : '0 4px 12px rgba(0, 0, 0, 0.05)'};
   }
   
   ${props => props.hasEntry && !props.isSelected && `
@@ -261,26 +270,26 @@ const LoadingState = styled(motion.div)`
 
 // 错误状态
 const ErrorState = styled(motion.div)`
-  background-color: #FFF3F3;
-  border-left: 4px solid #FF5252;
-  padding: 15px 20px;
-  margin: 20px 0;
-  border-radius: 0 8px 8px 0;
-  
-  h3 {
-    color: #D32F2F;
-    margin-bottom: 5px;
-    font-size: 1.1rem;
-  }
-  
-  p {
-    color: #555;
-    font-size: 0.95rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 40px 0;
+  color: #dc3545;
+  text-align: center;
+
+  svg {
+    font-size: 2rem;
+    margin-bottom: 10px;
   }
 `;
 
-// 周几标题
-const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+// Temporary typed wrappers for react-icons
+const TypedFaSpinner = FaSpinner as React.FC<any>;
+const TypedFaExclamationTriangle = FaExclamationTriangle as React.FC<any>;
+const TypedFaChevronLeft = FaChevronLeft as React.FC<any>;
+const TypedFaChevronRight = FaChevronRight as React.FC<any>;
+const TypedFaArrowLeft = FaArrowLeft as React.FC<any>;
 
 // 获取某月的天数
 const getDaysInMonth = (year: number, month: number) => {
@@ -292,300 +301,332 @@ const getFirstDayOfMonth = (year: number, month: number) => {
   return new Date(year, month, 1).getDay();
 };
 
+// 格式化日期为字符串 YYYY-MM-DD
+const formatDate = (year: number, month: number, day: number): string => {
+  const d = new Date(year, month, day);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dt = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dt}`;
+};
+
+// 新增一个空日记的提示组件
+const EmptyDiaryMessage = styled.div`
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+  
+  h3 {
+    font-size: 1.4rem;
+    margin-bottom: 15px;
+    color: #555;
+  }
+  
+  p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+`;
+
 // 日记组件
 const Diary: React.FC = () => {
-  // 状态
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [selectedEntry, setSelectedEntry] = useState<DiaryEntry | null>(null);
-  const [showDetail, setShowDetail] = useState(false);
-  const [entriesWithContent, setEntriesWithContent] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [daysWithEntries, setDaysWithEntries] = useState<number[]>([]);
+  const [selectedDiary, setSelectedDiary] = useState<DiaryEntry | null>(null);
+  const [view, setView] = useState<'calendar' | 'detail'>('calendar');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // 准备日历数据
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
-  const daysInMonth = getDaysInMonth(year, month);
-  const firstDayOfMonth = getFirstDayOfMonth(year, month);
-  
-  // 准备上个月的数据（用于填充日历前几天）
-  const daysInPrevMonth = getDaysInMonth(year, month - 1);
-  
-  // 格式化月份名称
-  const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
-  
-  // 加载当月有日记的日期
-  useEffect(() => {
-    const loadEntriesForMonth = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // 获取当月所有日记
-        const entries = await diaryService.getMonthEntries(year, month);
-        
-        // 提取有日记的日期
-        const datesWithEntries = entries.map(entry => entry.date);
-        setEntriesWithContent(datesWithEntries);
-        
-        setLoading(false);
-      } catch (err) {
-        console.error('Error loading diary entries:', err);
-        setError('加载日记数据时发生错误，请稍后再试');
-        setLoading(false);
-      }
-    };
-    
-    loadEntriesForMonth();
-  }, [year, month]);
-  
-  // 处理日期点击
-  const handleDateClick = async (dateStr: string) => {
-    setSelectedDate(dateStr);
-    
+
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth();
+
+  // 加载当月日记状态
+  const loadMonthStatus = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      
-      // 解析日期
-      const [yearStr, monthStr, dayStr] = dateStr.split('-').map(str => parseInt(str, 10));
-      const entry = await diaryService.getEntry(yearStr, monthStr - 1, dayStr);
-      
-      if (entry) {
-        // 使用类型断言解决类型不匹配问题
-        setSelectedEntry(entry as DiaryEntry);
-        setShowDetail(true);
-      } else {
-        setSelectedEntry(null);
-        setShowDetail(true); // 仍然显示详情页，但提示没有日记
-      }
-      
-      setLoading(false);
+      const days = await diaryService.getDiaryMonthStatus(currentYear, currentMonth + 1);
+      setDaysWithEntries(days);
     } catch (err) {
-      console.error('Error fetching diary entry:', err);
-      setError('加载日记内容时发生错误');
-      setLoading(false);
+      setError('无法加载日记状态，请稍后重试。');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
     }
+  }, [currentYear, currentMonth]);
+
+  useEffect(() => {
+    loadMonthStatus();
+  }, [loadMonthStatus]);
+
+  // 处理日期点击 - 修改为对所有日期都显示详情视图
+  const handleDateClick = async (day: number) => {
+    const dateStr = formatDate(currentYear, currentMonth, day);
+    const hasEntry = daysWithEntries.includes(day);
+    
+    setIsDetailLoading(true);
+    setSelectedDiary(null);
+    setError(null);
+    setView('detail'); // 总是切换到详情视图
+    
+    // 如果有日记条目，尝试获取它
+    if (hasEntry) {
+      try {
+        const entry = await diaryService.getDiaryEntry(dateStr);
+        if (entry) {
+          setSelectedDiary(entry as DiaryEntry);
+        } else {
+          // API 返回了空值，但理论上应该有日记
+          setError('无法加载日记详情。');
+        }
+      } catch (err) {
+        setError('加载日记详情时出错，请稍后重试。');
+        console.error(err);
+      }
+    } else {
+      // 创建一个特殊的"空日记"对象，标记为 isEmpty: true
+      // 这样在渲染时可以识别它不是真实日记
+      setSelectedDiary({
+        date: dateStr,
+        title: '没有日记',
+        content: '', 
+        mood: 'neutral',
+        isEmpty: true // 添加一个标志
+      } as DiaryEntry);
+    }
+    
+    setIsDetailLoading(false);
   };
-  
-  // 前进到下个月
+
+  // 月份导航
   const goToNextMonth = () => {
-    setCurrentDate(new Date(year, month + 1, 1));
+    setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
+    setView('calendar');
+    setSelectedDiary(null);
   };
-  
-  // 返回上个月
+
   const goToPrevMonth = () => {
-    setCurrentDate(new Date(year, month - 1, 1));
+    setCurrentDate(new Date(currentYear, currentMonth - 1, 1));
+    setView('calendar');
+    setSelectedDiary(null);
   };
-  
+
   // 返回日历视图
   const backToCalendar = () => {
-    setShowDetail(false);
-    setError(null);
+    setView('calendar');
+    setSelectedDiary(null);
   };
-  
-  // 检查某日期是否有日记条目
-  const hasEntryForDate = (dateStr: string) => {
-    return entriesWithContent.includes(dateStr);
+
+  // 检查日期是否有条目
+  const hasEntryForDay = (day: number): boolean => {
+    return daysWithEntries.includes(day);
   };
-  
-  // 格式化日期为字符串 YYYY-MM-DD
-  const formatDate = (year: number, month: number, day: number) => {
-    return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-  };
-  
+
   // 渲染加载状态
   const renderLoading = () => (
-    <LoadingState
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-    >
-      <motion.svg 
-        viewBox="0 0 50 50" 
-        animate={{ rotate: 360 }}
-        transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-      >
-        <circle 
-          cx="25" cy="25" r="20" 
-          fill="none" 
-          stroke="var(--accent-color, #6c5ce7)" 
-          strokeWidth="4"
-          strokeDasharray="80, 125" 
-        />
-      </motion.svg>
-      <p>加载中...</p>
+    <LoadingState initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>
+        <TypedFaSpinner />
+      </motion.div>
+      <span>加载中...</span>
     </LoadingState>
   );
-  
+
   // 渲染错误状态
   const renderError = () => (
-    <ErrorState
-      initial={{ opacity: 0, x: -10 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -10 }}
-    >
-      <h3>出错了</h3>
-      <p>{error}</p>
+    <ErrorState initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <TypedFaExclamationTriangle />
+      <span>{error}</span>
     </ErrorState>
   );
-  
+
   // 生成日历单元格
   const renderCalendarCells = () => {
-    const cells = [];
+    const daysInCurrentMonth = getDaysInMonth(currentYear, currentMonth);
+    const firstDayOfWeek = getFirstDayOfMonth(currentYear, currentMonth);
     const today = new Date();
-    const todayString = formatDate(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate()
-    );
-    
-    // 添加上个月的天数（填充前几天）
-    for (let i = firstDayOfMonth - 1; i >= 0; i--) {
-      const prevMonthDay = daysInPrevMonth - i;
-      const dateStr = formatDate(year, month - 1, prevMonthDay);
-      const hasEntry = hasEntryForDate(dateStr);
-      
+    const todayDate = today.getDate();
+    const todayMonth = today.getMonth();
+    const todayYear = today.getFullYear();
+
+    const cells = [];
+
+    // 上个月的末尾几天
+    const daysInPrevMonth = getDaysInMonth(currentYear, currentMonth - 1);
+    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+      const day = daysInPrevMonth - i;
       cells.push(
-        <CalendarCell 
-          key={`prev-${i}`} 
+        <CalendarCell
+          key={`prev-${day}`}
           isCurrentMonth={false}
-          hasEntry={hasEntry}
-          isSelected={dateStr === selectedDate}
-          onClick={() => handleDateClick(dateStr)}
-        >
-          <DateNumber>{prevMonthDay}</DateNumber>
-        </CalendarCell>
-      );
-    }
-    
-    // 添加当月的天数
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dateStr = formatDate(year, month, day);
-      const hasEntry = hasEntryForDate(dateStr);
-      const isToday = dateStr === todayString;
-      
-      cells.push(
-        <CalendarCell 
-          key={`current-${day}`} 
-          isCurrentMonth={true}
-          hasEntry={hasEntry}
-          isSelected={dateStr === selectedDate}
-          onClick={() => handleDateClick(dateStr)}
-        >
-          <DateNumber className={isToday ? 'today' : ''}>{day}</DateNumber>
-        </CalendarCell>
-      );
-    }
-    
-    // 添加下个月的天数（填充后几天）
-    const totalCellsNeeded = Math.ceil((firstDayOfMonth + daysInMonth) / 7) * 7;
-    const nextMonthDays = totalCellsNeeded - (firstDayOfMonth + daysInMonth);
-    
-    for (let day = 1; day <= nextMonthDays; day++) {
-      const dateStr = formatDate(year, month + 1, day);
-      const hasEntry = hasEntryForDate(dateStr);
-      
-      cells.push(
-        <CalendarCell 
-          key={`next-${day}`} 
-          isCurrentMonth={false}
-          hasEntry={hasEntry}
-          isSelected={dateStr === selectedDate}
-          onClick={() => handleDateClick(dateStr)}
+          hasEntry={false}
+          isSelected={false}
+          isToday={false}
+          onClick={() => {}}
         >
           <DateNumber>{day}</DateNumber>
         </CalendarCell>
       );
     }
-    
+
+    // 当前月份的日期
+    for (let day = 1; day <= daysInCurrentMonth; day++) {
+      const isToday = day === todayDate && currentMonth === todayMonth && currentYear === todayYear;
+      const hasEntry = hasEntryForDay(day);
+      const dateStr = formatDate(currentYear, currentMonth, day);
+      const isSelected = selectedDiary?.date === dateStr && view === 'detail';
+
+      cells.push(
+        <CalendarCell
+          key={day}
+          isCurrentMonth={true}
+          hasEntry={hasEntry}
+          isSelected={isSelected}
+          isToday={isToday}
+          onClick={() => handleDateClick(day)}
+        >
+          <DateNumber className={isToday ? 'today' : ''}>{day}</DateNumber>
+        </CalendarCell>
+      );
+    }
+
+    // 下个月的开头几天
+    const totalCells = cells.length;
+    const remainingCells = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+    for (let i = 1; i <= remainingCells; i++) {
+      cells.push(
+        <CalendarCell
+          key={`next-${i}`}
+          isCurrentMonth={false}
+          hasEntry={false}
+          isSelected={false}
+          isToday={false}
+          onClick={() => {}}
+        >
+          <DateNumber>{i}</DateNumber>
+        </CalendarCell>
+      );
+    }
+
+    // 如果总单元格数少于 35 (5行 * 7列)，补足空行以保持高度稳定
+    while (cells.length < 35) {
+      const fillDay = cells.length - totalCells + remainingCells + 1;
+      cells.push(
+        <CalendarCell
+          key={`fill-${cells.length}`}
+          isCurrentMonth={false}
+          hasEntry={false}
+          isSelected={false}
+          isToday={false}
+          style={{ opacity: 0, pointerEvents: 'none' }}
+        >
+          <DateNumber>{fillDay}</DateNumber>
+        </CalendarCell>
+      );
+    }
+
     return cells;
   };
-  
+
   // 获取心情中文名称
-  const getMoodLabel = (mood: string) => {
-    switch(mood) {
-      case 'happy': return '开心';
-      case 'joyful': return '愉快';
-      case 'reflective': return '沉思';
-      case 'accomplished': return '成就感';
-      case 'excited': return '兴奋';
-      case 'calm': return '平静';
-      case 'tired': return '疲惫';
-      case 'sad': return '失落';
-      default: return '平静';
-    }
+  const getMoodLabel = (mood: string): string => {
+    const labels: { [key: string]: string } = {
+      happy: '开心',
+      joyful: '愉悦',
+      reflective: '沉思',
+      accomplished: '成就感',
+      excited: '兴奋',
+    };
+    return labels[mood] || mood;
   };
-  
+
+  // 渲染详情部分
+  const renderDiaryDetail = () => {
+    if (isDetailLoading) {
+      return renderLoading();
+    }
+    
+    if (error) {
+      return renderError();
+    }
+    
+    if (!selectedDiary) {
+      return <p>无法加载此日记。</p>;
+    }
+    
+    // 检查是否是空日记（没有日记记录的日期）
+    if ((selectedDiary as any).isEmpty) {
+      return (
+        <EmptyDiaryMessage>
+          <h3>{selectedDiary.date} 没有日记记录</h3>
+          <p>这一天还没有添加日记内容。您可以返回日历查看其他日期，或者等待未来添加此日期的日记。</p>
+        </EmptyDiaryMessage>
+      );
+    }
+    
+    // 有日记记录，显示正常的日记详情
+    return (
+      <DiaryDetailView>
+        <DiaryHeader>
+          <DiaryTitle>{selectedDiary.title}</DiaryTitle>
+          <DiaryDate>{selectedDiary.date}</DiaryDate>
+        </DiaryHeader>
+        <DiaryContent>{selectedDiary.content}</DiaryContent>
+        <MoodTag mood={selectedDiary.mood}>
+          {getMoodLabel(selectedDiary.mood)}
+        </MoodTag>
+      </DiaryDetailView>
+    );
+  };
+
   return (
     <DiaryContainer>
-      {error && renderError()}
-      
+      <PageTitle initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+        我的日记本
+      </PageTitle>
+
       <AnimatePresence mode="wait">
-        {loading ? (
-          renderLoading()
-        ) : !showDetail ? (
-          <motion.div
-            key="calendar"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.5 }}
-          >
+        {view === 'calendar' && (
+          <motion.div key="calendar" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <MonthNavigation>
-              <NavButton onClick={goToPrevMonth}>
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M15 18L9 12L15 6" stroke="#333" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+              <NavButton onClick={goToPrevMonth} aria-label="上个月">
+                <TypedFaChevronLeft />
               </NavButton>
-              <MonthTitle>{`${year}年${monthNames[month]}`}</MonthTitle>
-              <NavButton onClick={goToNextMonth}>
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M9 6L15 12L9 18" stroke="#333" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+              <MonthTitle>
+                {currentYear}年 {currentMonth + 1}月
+              </MonthTitle>
+              <NavButton onClick={goToNextMonth} aria-label="下个月">
+                <TypedFaChevronRight />
               </NavButton>
             </MonthNavigation>
-            
-            <CalendarView>
-              {weekdays.map(day => (
-                <WeekdayHeader key={day}>{day}</WeekdayHeader>
-              ))}
-              {renderCalendarCells()}
-            </CalendarView>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="detail"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 30 }}
-            transition={{ duration: 0.5 }}
-          >
-            <BackButton onClick={backToCalendar}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M19 12H5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M12 19L5 12L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              返回日历
-            </BackButton>
-            
-            {selectedEntry ? (
-              <DiaryDetailView>
-                <DiaryHeader>
-                  <DiaryTitle>{selectedEntry.title}</DiaryTitle>
-                  <DiaryDate>{selectedEntry.date}</DiaryDate>
-                </DiaryHeader>
-                <DiaryContent>{selectedEntry.content}</DiaryContent>
-                <MoodTag mood={selectedEntry.mood}>
-                  {getMoodLabel(selectedEntry.mood)}
-                </MoodTag>
-              </DiaryDetailView>
-            ) : (
-              <DiaryDetailView>
-                <DiaryTitle>这一天还没有日记</DiaryTitle>
-                <DiaryContent>这一天还没有记录日记内容。</DiaryContent>
-              </DiaryDetailView>
+
+            {isLoading && renderLoading()}
+            {error && !isLoading && renderError()}
+
+            {!isLoading && !error && (
+              <CalendarView>
+                <WeekdayHeader>日</WeekdayHeader>
+                <WeekdayHeader>一</WeekdayHeader>
+                <WeekdayHeader>二</WeekdayHeader>
+                <WeekdayHeader>三</WeekdayHeader>
+                <WeekdayHeader>四</WeekdayHeader>
+                <WeekdayHeader>五</WeekdayHeader>
+                <WeekdayHeader>六</WeekdayHeader>
+                {renderCalendarCells()}
+              </CalendarView>
             )}
+          </motion.div>
+        )}
+
+        {view === 'detail' && (
+          <motion.div key="detail" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}>
+             <BackButton onClick={backToCalendar}>
+               <TypedFaArrowLeft /> 返回日历
+             </BackButton>
+             {renderDiaryDetail()}
           </motion.div>
         )}
       </AnimatePresence>
