@@ -193,3 +193,68 @@ API 基础路径: `[REACT_APP_API_BASE_URL]` (例如: `https://api.love.goree.te
     -   `404 Not Found`: 指定日期无日记。
     -   `400 Bad Request`: `date` 参数缺失或格式错误。
     -   `500 Internal Server Error`: 服务器错误。
+
+### 3. 创建日记条目
+
+为指定日期创建一个新的日记条目。如果该日期已有日记，则操作失败。
+
+-   **URL:** `/api/diary/entry`
+-   **方法:** `POST`
+-   **请求体 (Content-Type: application/json):**
+    ```json
+    {
+      "date": "YYYY-MM-DD", // 必需
+      "title": "日记标题",     // 必需
+      "content": "日记内容...", // 必需
+      "mood": "心情标识符"    // 必需
+    }
+    ```
+-   **成功响应 (201 Created):**
+    -   **内容类型:** `application/json`
+    -   **响应体:** 创建成功的日记对象 (可能包含 ID)。
+    ```json
+    {
+      "id": "backend-generated-id", // 可选
+      "date": "YYYY-MM-DD",
+      "title": "日记标题",
+      "content": "日记内容...",
+      "mood": "心情标识符"
+    }
+    ```
+-   **错误响应:**
+    -   `400 Bad Request`: 请求体无效或缺少字段。
+    -   `409 Conflict`: 该日期的日记已存在。
+    -   `500 Internal Server Error`: 服务器错误。
+
+### 4. 更新日记条目
+
+更新指定日期的现有日记条目。
+
+-   **URL:** `/api/diary/entry/{date}`
+-   **方法:** `PUT`
+-   **路径参数:**
+    -   `date` (string, 必需): 要更新的日记日期 (YYYY-MM-DD)。
+-   **请求体 (Content-Type: application/json):** 包含更新字段的完整日记信息 (除了日期)。
+    ```json
+    {
+      "title": "更新后的标题",   // 必需
+      "content": "更新后的内容", // 必需
+      "mood": "更新后的心情"    // 必需
+    }
+    ```
+-   **成功响应 (200 OK):**
+    -   **内容类型:** `application/json`
+    -   **响应体:** 更新后的完整日记对象。
+    ```json
+    {
+      "id": "backend-generated-id", // 可选
+      "date": "YYYY-MM-DD", // 从 URL 获取
+      "title": "更新后的标题",
+      "content": "更新后的内容",
+      "mood": "更新后的心情"
+    }
+    ```
+-   **错误响应:**
+    -   `400 Bad Request`: 请求体无效或缺少字段。
+    -   `404 Not Found`: 指定日期的日记不存在。
+    -   `500 Internal Server Error`: 服务器错误。

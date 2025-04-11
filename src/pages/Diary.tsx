@@ -2,7 +2,16 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import diaryService from '../services/diaryService';
-import { FaChevronLeft, FaChevronRight, FaSpinner, FaExclamationTriangle, FaArrowLeft } from 'react-icons/fa';
+import {
+  FaChevronLeft,
+  FaChevronRight,
+  FaSpinner,
+  FaExclamationTriangle,
+  FaArrowLeft,
+  FaEdit,
+  FaPlus
+} from 'react-icons/fa';
+import DiaryFormModal from '../components/DiaryFormModal';
 
 // 定义日记数据类型
 interface DiaryEntry {
@@ -290,6 +299,8 @@ const TypedFaExclamationTriangle = FaExclamationTriangle as React.FC<any>;
 const TypedFaChevronLeft = FaChevronLeft as React.FC<any>;
 const TypedFaChevronRight = FaChevronRight as React.FC<any>;
 const TypedFaArrowLeft = FaArrowLeft as React.FC<any>;
+const TypedFaEdit = FaEdit as React.FC<any>;
+const TypedFaPlus = FaPlus as React.FC<any>;
 
 // 获取某月的天数
 const getDaysInMonth = (year: number, month: number) => {
@@ -330,6 +341,110 @@ const EmptyDiaryMessage = styled.div`
   }
 `;
 
+// Add styles for action buttons in detail view
+const DetailActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+  gap: 10px;
+`;
+
+const ActionButton = styled.button`
+  background-color: #f0f0f0;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: #555;
+  transition: background-color 0.2s ease, color 0.2s ease;
+
+  &:hover {
+    background-color: #e0e0e0;
+    color: #333;
+  }
+
+  svg {
+    font-size: 1rem;
+  }
+`;
+
+// 更新浮动按钮样式为圆形图标按钮
+const FloatingActionButton = styled.button`
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: var(--accent-color, #6c5ce7);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+  
+  /* 悬停效果 */
+  &:hover {
+    background-color: #5a4cdb;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(108, 92, 231, 0.4);
+    
+    &::after {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* 点击效果 */
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(108, 92, 231, 0.3);
+  }
+  
+  /* Tooltip */
+  &::after {
+    content: '写今日日记';
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    opacity: 0;
+    transition: all 0.2s ease;
+    pointer-events: none;
+  }
+  
+  /* 图标样式 */
+  svg {
+    font-size: 1.5rem;
+  }
+  
+  /* 移动端响应式调整 */
+  @media (max-width: 768px) {
+    bottom: 20px;
+    right: 20px;
+    width: 48px;
+    height: 48px;
+    
+    svg {
+      font-size: 1.3rem;
+    }
+  }
+`;
+
 // 日记组件
 const Diary: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -339,6 +454,10 @@ const Diary: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+  const [dateForModal, setDateForModal] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
@@ -362,24 +481,23 @@ const Diary: React.FC = () => {
     loadMonthStatus();
   }, [loadMonthStatus]);
 
-  // 处理日期点击 - 修改为对所有日期都显示详情视图
+  // Modified handleDateClick to set date for potential modal use
   const handleDateClick = async (day: number) => {
     const dateStr = formatDate(currentYear, currentMonth, day);
+    setDateForModal(dateStr);
     const hasEntry = daysWithEntries.includes(day);
-    
+
     setIsDetailLoading(true);
     setSelectedDiary(null);
     setError(null);
-    setView('detail'); // 总是切换到详情视图
-    
-    // 如果有日记条目，尝试获取它
+    setView('detail');
+
     if (hasEntry) {
       try {
         const entry = await diaryService.getDiaryEntry(dateStr);
         if (entry) {
           setSelectedDiary(entry as DiaryEntry);
         } else {
-          // API 返回了空值，但理论上应该有日记
           setError('无法加载日记详情。');
         }
       } catch (err) {
@@ -387,18 +505,58 @@ const Diary: React.FC = () => {
         console.error(err);
       }
     } else {
-      // 创建一个特殊的"空日记"对象，标记为 isEmpty: true
-      // 这样在渲染时可以识别它不是真实日记
       setSelectedDiary({
         date: dateStr,
         title: '没有日记',
-        content: '', 
+        content: '',
         mood: 'neutral',
-        isEmpty: true // 添加一个标志
+        isEmpty: true
       } as DiaryEntry);
     }
-    
+
     setIsDetailLoading(false);
+  };
+
+  // Functions to open the modal
+  const openCreateModal = (date: string) => {
+      setDateForModal(date || formatDate(currentYear, currentMonth, new Date().getDate()));
+      setModalMode('create');
+      setSelectedDiary(null);
+      setIsModalOpen(true);
+  };
+
+  const openEditModal = (entry: DiaryEntry) => {
+      if (!entry || entry.isEmpty) return;
+      setDateForModal(entry.date);
+      setModalMode('edit');
+      setIsModalOpen(true);
+  };
+
+  // Handle form submission from modal
+  const handleFormSubmit = async (data: Omit<DiaryEntry, 'isEmpty'>) => {
+    setIsSubmitting(true);
+    try {
+      let updatedEntry;
+      if (modalMode === 'create') {
+        updatedEntry = await diaryService.createDiaryEntry(data);
+      } else {
+        const { date, ...updateData } = data;
+        updatedEntry = await diaryService.updateDiaryEntry(date, updateData);
+      }
+
+      if (updatedEntry) {
+          setSelectedDiary(updatedEntry as DiaryEntry);
+          loadMonthStatus();
+          setIsModalOpen(false);
+      } else {
+           throw new Error("操作失败，未收到有效响应。");
+      }
+    } catch (error: any) {
+      console.error("Submit error:", error);
+       throw error;
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // 月份导航
@@ -543,7 +701,7 @@ const Diary: React.FC = () => {
     return labels[mood] || mood;
   };
 
-  // 渲染详情部分
+  // Modified renderDiaryDetail to include Edit button
   const renderDiaryDetail = () => {
     if (isDetailLoading) {
       return renderLoading();
@@ -554,39 +712,57 @@ const Diary: React.FC = () => {
     }
     
     if (!selectedDiary) {
-      return <p>无法加载此日记。</p>;
+      return <p>请选择一个日期。</p>;
     }
-    
-    // 检查是否是空日记（没有日记记录的日期）
-    if ((selectedDiary as any).isEmpty) {
-      return (
-        <EmptyDiaryMessage>
-          <h3>{selectedDiary.date} 没有日记记录</h3>
-          <p>这一天还没有添加日记内容。您可以返回日历查看其他日期，或者等待未来添加此日期的日记。</p>
-        </EmptyDiaryMessage>
-      );
-    }
-    
-    // 有日记记录，显示正常的日记详情
+
+    const isEmpty = (selectedDiary as any).isEmpty;
+
     return (
-      <DiaryDetailView>
-        <DiaryHeader>
-          <DiaryTitle>{selectedDiary.title}</DiaryTitle>
-          <DiaryDate>{selectedDiary.date}</DiaryDate>
-        </DiaryHeader>
-        <DiaryContent>{selectedDiary.content}</DiaryContent>
-        <MoodTag mood={selectedDiary.mood}>
-          {getMoodLabel(selectedDiary.mood)}
-        </MoodTag>
-      </DiaryDetailView>
-    );
+        <div>
+          {isEmpty ? (
+            <EmptyDiaryMessage>
+              <h3>{selectedDiary.date} 没有日记记录</h3>
+              <p>你可以为此日期添加一篇新日记。</p>
+            </EmptyDiaryMessage>
+          ) : (
+            <DiaryDetailView>
+              <DiaryHeader>
+                <DiaryTitle>{selectedDiary.title}</DiaryTitle>
+                <DiaryDate>{selectedDiary.date}</DiaryDate>
+              </DiaryHeader>
+              <DiaryContent>{selectedDiary.content}</DiaryContent>
+              <MoodTag mood={selectedDiary.mood}>
+                {getMoodLabel(selectedDiary.mood)}
+              </MoodTag>
+            </DiaryDetailView>
+          )}
+          <DetailActions>
+              {isEmpty ? (
+                  <ActionButton onClick={() => openCreateModal(selectedDiary.date)}>
+                      <TypedFaPlus /> 写新日记
+                  </ActionButton>
+              ) : (
+                  <ActionButton onClick={() => openEditModal(selectedDiary)}>
+                      <TypedFaEdit /> 编辑
+                  </ActionButton>
+              )}
+          </DetailActions>
+        </div>
+      );
   };
 
   return (
     <DiaryContainer>
-      <PageTitle initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-        我的日记本
-      </PageTitle>
+
+      {/* 使用 FloatingActionButton 替换 AddDiaryButton */}
+      {view === 'calendar' && (
+        <FloatingActionButton 
+          onClick={() => openCreateModal(formatDate(currentYear, currentMonth, new Date().getDate()))}
+          aria-label="写今日日记"
+        >
+          <TypedFaPlus />
+        </FloatingActionButton>
+      )}
 
       <AnimatePresence mode="wait">
         {view === 'calendar' && (
@@ -622,14 +798,24 @@ const Diary: React.FC = () => {
         )}
 
         {view === 'detail' && (
-          <motion.div key="detail" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}>
-             <BackButton onClick={backToCalendar}>
-               <TypedFaArrowLeft /> 返回日历
-             </BackButton>
-             {renderDiaryDetail()}
-          </motion.div>
+            <motion.div key="detail" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}>
+                <BackButton onClick={backToCalendar}>
+                    <TypedFaArrowLeft /> 返回日历
+                </BackButton>
+                {renderDiaryDetail()}
+            </motion.div>
         )}
       </AnimatePresence>
+
+      <DiaryFormModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleFormSubmit}
+        initialData={modalMode === 'edit' ? selectedDiary : null}
+        date={dateForModal}
+        isLoading={isSubmitting}
+      />
+
     </DiaryContainer>
   );
 };

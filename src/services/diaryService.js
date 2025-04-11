@@ -70,6 +70,86 @@ class DiaryService {
   }
 
   /**
+   * 创建新的日记条目
+   * @param {Object} entryData - 包含 date, title, content, mood 的日记数据
+   * @returns {Promise<Object | null>} - 返回创建成功的日记对象或 null
+   */
+  async createDiaryEntry(entryData) {
+    if (!cleanApiBaseUrl) {
+      console.error("API base URL not configured");
+      return null;
+    }
+    const url = `${cleanApiBaseUrl}/api/diary/entry`;
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(entryData),
+      });
+      if (!response.ok) {
+        // 可以根据 status code 给出更具体的错误信息
+        if (response.status === 409) {
+          throw new Error(
+            "Conflict: Diary entry for this date already exists."
+          );
+        }
+        if (response.status === 400) {
+          throw new Error("Bad Request: Invalid data provided.");
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return this.formatEntry(data); // 假设返回的数据需要格式化
+    } catch (error) {
+      console.error("Error creating diary entry:", error);
+      // 将错误向上抛出，以便 UI 层可以捕获并显示
+      throw error;
+    }
+  }
+
+  /**
+   * 更新指定日期的日记条目
+   * @param {string} dateStr - 日期字符串 (YYYY-MM-DD)
+   * @param {Object} entryData - 包含 title, content, mood 的更新数据
+   * @returns {Promise<Object | null>} - 返回更新成功的日记对象或 null
+   */
+  async updateDiaryEntry(dateStr, entryData) {
+    if (!cleanApiBaseUrl) {
+      console.error("API base URL not configured");
+      return null;
+    }
+    const url = `${cleanApiBaseUrl}/api/diary/entry/${dateStr}`;
+    try {
+      const response = await fetch(url, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(entryData),
+      });
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error(
+            "Not Found: Diary entry for this date does not exist."
+          );
+        }
+        if (response.status === 400) {
+          throw new Error("Bad Request: Invalid data provided.");
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return this.formatEntry(data); // 假设返回的数据需要格式化
+    } catch (error) {
+      console.error(`Error updating diary entry for ${dateStr}:`, error);
+      // 将错误向上抛出
+      throw error;
+    }
+  }
+
+  /**
    * 格式化日记条目，统一字段名
    * @param {Object} rawEntry - 从 API 获取的原始日记数据
    * @returns {Object} - 返回格式化后的日记对象
