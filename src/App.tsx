@@ -9,6 +9,7 @@ const Welcome = lazy(() => import('./pages/Welcome'));
 const Gallery = lazy(() => import('./pages/Gallery'));
 const Timeline = lazy(() => import('./pages/Timeline'));
 const Diary = lazy(() => import('./pages/Diary'));
+const Whisper = lazy(() => import('./pages/Whisper'));
 
 // 加载指示器组件
 const LoadingFallback = () => (
@@ -99,6 +100,13 @@ function App() {
               <ProtectedRoute>
                 <NavbarLayout>
                   <Timeline />
+                </NavbarLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/whisper" element={
+              <ProtectedRoute>
+                <NavbarLayout>
+                  <Whisper />
                 </NavbarLayout>
               </ProtectedRoute>
             } />

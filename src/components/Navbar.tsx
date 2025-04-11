@@ -503,6 +503,15 @@ const Navbar: React.FC = () => {
               时间轴
             </MenuItem>
           </NavLink>
+          <NavLink>
+            <MenuItem 
+              to="/whisper" 
+              isActive={location.pathname === '/whisper'}
+              onClick={closeMenu}
+            >
+              悄悄话
+            </MenuItem>
+          </NavLink>
           
           {/* 移除这里的退出登录按钮，因为已经放入下拉菜单 */}
         </NavLinks>
