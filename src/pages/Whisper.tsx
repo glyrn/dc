@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { getAccessLogs, formatTimeAgo } from '../services/accessLogService';
 import { getAllWhispers, sendWhisper } from '../services/whisperService';
 import type { Whisper as WhisperType } from '../services/whisperService';
 import VisitNotification, { NotificationMessage } from '../components/VisitNotification';
 import WhisperBubbles from '../components/WhisperBubbles';
 import WhisperInput from '../components/WhisperInput';
+import { isAuthenticated } from '../services/authService';
 
 // 页面容器
 const PageContainer = styled(motion.div)`
@@ -129,6 +131,7 @@ const getRandomColor = (): string => {
 };
 
 const WhisperPage: React.FC = () => {
+  const navigate = useNavigate();
   const [isAccessLogsLoading, setIsAccessLogsLoading] = useState(true);
   const [isWhispersLoading, setIsWhispersLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
@@ -138,9 +141,16 @@ const WhisperPage: React.FC = () => {
   const [whispers, setWhispers] = useState<WhisperType[]>([]);
   
   useEffect(() => {
+    // 检查用户登录状态
+    if (!isAuthenticated()) {
+      // 未登录则跳转到首页
+      navigate('/');
+      return;
+    }
+    
     fetchAccessLogs();
     fetchWhispers();
-  }, []);
+  }, [navigate]);
   
   // 获取访问日志
   const fetchAccessLogs = async () => {
@@ -242,10 +252,6 @@ const WhisperPage: React.FC = () => {
           <VisitNotification messages={notificationMessages} />
         )}
         
-        <Divider />
-        
-        <SectionTitle>留言板泡泡</SectionTitle>
-        
         <WhispersContainer>
           {isWhispersLoading ? (
             <LoadingContainer>加载悄悄话中...</LoadingContainer>
@@ -260,7 +266,7 @@ const WhisperPage: React.FC = () => {
       </ContentContainer>
       
       <FooterText>
-        轻点泡泡，查看悄悄话内容 ✨
+        点击彩色泡泡，查看神秘留言 ✨
       </FooterText>
       
       {/* 悄悄话输入框 */}
