@@ -208,16 +208,40 @@ const Navbar: React.FC = () => {
         
         <NavLinks isOpen={isOpen}>
           <NavLink>
-            <MenuItem to="/home" isActive={location.pathname === '/home'}>首页</MenuItem>
+            <MenuItem 
+              to="/home" 
+              isActive={location.pathname === '/home'}
+              onClick={closeMenu}
+            >
+              首页
+            </MenuItem>
           </NavLink>
           <NavLink>
-            <MenuItem to="/gallery" isActive={location.pathname === '/gallery'}>相册</MenuItem>
+            <MenuItem 
+              to="/gallery" 
+              isActive={location.pathname === '/gallery'}
+              onClick={closeMenu}
+            >
+              相册
+            </MenuItem>
           </NavLink>
           <NavLink>
-            <MenuItem to="/diary" isActive={location.pathname === '/diary'}>日记</MenuItem>
+            <MenuItem 
+              to="/diary" 
+              isActive={location.pathname === '/diary'}
+              onClick={closeMenu}
+            >
+              日记
+            </MenuItem>
           </NavLink>
           <NavLink>
-            <MenuItem to="/timeline" isActive={location.pathname === '/timeline'}>时间轴</MenuItem>
+            <MenuItem 
+              to="/timeline" 
+              isActive={location.pathname === '/timeline'}
+              onClick={closeMenu}
+            >
+              时间轴
+            </MenuItem>
           </NavLink>
         </NavLinks>
       </NavContainer>

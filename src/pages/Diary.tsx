@@ -7,7 +7,7 @@ import { FaChevronRight } from 'react-icons/fa';
 import { FaSpinner } from 'react-icons/fa';
 import { FaExclamationTriangle } from 'react-icons/fa';
 import { FaArrowLeft } from 'react-icons/fa';
-import { FaEdit } from 'react-icons/fa';
+import { FaPencilAlt } from 'react-icons/fa';
 import { FaPlus } from 'react-icons/fa';
 import { FaSmile } from 'react-icons/fa';
 import { FaLaughBeam } from 'react-icons/fa';
@@ -299,7 +299,7 @@ const TypedFaExclamationTriangle = FaExclamationTriangle as React.FC<any>;
 const TypedFaChevronLeft = FaChevronLeft as React.FC<any>;
 const TypedFaChevronRight = FaChevronRight as React.FC<any>;
 const TypedFaArrowLeft = FaArrowLeft as React.FC<any>;
-const TypedFaEdit = FaEdit as React.FC<any>;
+const TypedFaPencilAlt = FaPencilAlt as React.FC<any>;
 const TypedFaPlus = FaPlus as React.FC<any>;
 const TypedFaSmile = FaSmile as React.FC<any>;
 const TypedFaLaughBeam = FaLaughBeam as React.FC<any>;
@@ -468,9 +468,41 @@ const Diary: React.FC = () => {
   const [dateForModal, setDateForModal] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCheckingTodayEntry, setIsCheckingTodayEntry] = useState(false);
+  const [todayHasEntry, setTodayHasEntry] = useState<boolean | null>(null);
 
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
+
+  // Function to check if an entry exists for today
+  const checkTodayStatus = useCallback(async () => {
+      const today = new Date();
+      const todayDateStr = formatDate(today.getFullYear(), today.getMonth(), today.getDate());
+      // Avoid checking if already checked or if not viewing the current month potentially
+      // Simple check for now:
+      // setIsLoading(true); // Maybe a different loading state?
+      try {
+          const entry = await diaryService.getDiaryEntry(todayDateStr);
+          setTodayHasEntry(!!entry); // Set true if entry exists, false otherwise
+      } catch (err) {
+          console.error("Error checking today's status:", err);
+          setTodayHasEntry(null); // Set back to null or false on error? Null indicates check failed.
+      } finally {
+          // setIsLoading(false);
+      }
+  }, []); // Dependencies might be needed if it uses state/props from outside
+
+  // Effect to check today's status when the component mounts or month changes to current month
+   useEffect(() => {
+    const today = new Date();
+    // Check only if the calendar is showing the current month and year
+    if (currentYear === today.getFullYear() && currentMonth === today.getMonth()) {
+       checkTodayStatus();
+    } else {
+       // If viewing a different month, we can assume today's status isn't directly relevant for the FAB icon
+       // Or maybe clear it? Let's clear it for simplicity.
+       setTodayHasEntry(null);
+    }
+   }, [currentYear, currentMonth, checkTodayStatus]);
 
   // 加载当月日记状态
   const loadMonthStatus = useCallback(async () => {
@@ -574,6 +606,12 @@ const Diary: React.FC = () => {
           setSelectedDiary(updatedEntry as DiaryEntry);
           loadMonthStatus();
           setIsModalOpen(false);
+          // After submit, re-check today's status if the submitted date was today
+          const today = new Date();
+          const todayDateStr = formatDate(today.getFullYear(), today.getMonth(), today.getDate());
+          if (data.date === todayDateStr) {
+              checkTodayStatus(); // Re-check status after saving today's entry
+          }
       } else {
            throw new Error("操作失败，未收到有效响应。");
       }
@@ -819,7 +857,7 @@ const Diary: React.FC = () => {
               {/* Show Edit button only if it's not empty */}
               {!isEmpty && (
                   <ActionButton onClick={() => openEditModal(selectedDiary)}>
-                      <TypedFaEdit /> 编辑
+                      <TypedFaPencilAlt /> 编辑
                   </ActionButton>
               )}
           </DetailActions>
@@ -827,7 +865,7 @@ const Diary: React.FC = () => {
       );
   };
 
-  // New handler for the Floating Action Button
+  // Modified handler for the Floating Action Button
   const handleFabClick = async () => {
     setIsCheckingTodayEntry(true);
     const today = new Date();
@@ -835,31 +873,39 @@ const Diary: React.FC = () => {
     setError(null);
 
     try {
-      const entry = await diaryService.getDiaryEntry(todayDateStr);
-      if (entry) {
-        openEditModal(entry as DiaryEntry);
-      } else {
-        openCreateModal(todayDateStr);
-      }
+        const entry = await diaryService.getDiaryEntry(todayDateStr);
+        setTodayHasEntry(!!entry); // Update state based on check
+        if (entry) {
+            openEditModal(entry as DiaryEntry);
+        } else {
+            openCreateModal(todayDateStr);
+        }
     } catch (err) {
-      console.error("Error checking/fetching today's diary entry:", err);
-      setError("检查今日日记时出错，请稍后重试。");
+        console.error("Error checking/fetching today's diary entry:", err);
+        setError("检查今日日记时出错，请稍后重试。");
+        setTodayHasEntry(null); // Indicate check failed
     } finally {
-      setIsCheckingTodayEntry(false);
+        setIsCheckingTodayEntry(false);
     }
   };
 
   return (
     <DiaryContainer>
 
-      {/* Floating Action Button - updated onClick */}
+      {/* Floating Action Button - updated icon and aria-label */}
       {view === 'calendar' && (
         <FloatingActionButton
           onClick={handleFabClick}
-          aria-label="写或编辑今日日记"
-          disabled={isCheckingTodayEntry}
+          aria-label={todayHasEntry === true ? "编辑今日日记" : "写今日日记"}
+          disabled={isCheckingTodayEntry || todayHasEntry === null}
         >
-          {isCheckingTodayEntry ? <TypedFaSpinner className="spin-animation" /> : <TypedFaPlus />}
+          {isCheckingTodayEntry ? (
+            <TypedFaSpinner className="spin-animation" />
+          ) : todayHasEntry === true ? (
+            <TypedFaPencilAlt />
+          ) : (
+            <TypedFaPlus />
+          )}
         </FloatingActionButton>
       )}
 
