@@ -133,7 +133,13 @@ const ModalOverlay = styled(motion.div)`
   z-index: 100;
 `;
 
-const ModalContent = styled(motion.div)`
+// 定义自定义主题接口
+interface CustomTheme {
+  authSuccess?: boolean;
+}
+
+// 修改ModalContent样式，添加验证成功的效果
+const ModalContent = styled(motion.div)<{ $authSuccess?: boolean }>`
   background-color: #1a1a1a;
   border-radius: 15px;
   padding: 30px;
@@ -143,6 +149,27 @@ const ModalContent = styled(motion.div)`
   display: flex;
   flex-direction: column;
   align-items: center;
+  position: relative;
+  overflow: hidden;
+  
+  &:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #6c5ce7, #00cec9);
+    transform-origin: left;
+    transform: scaleX(0);
+    transition: transform 1.5s ease;
+  }
+  
+  ${props => props.$authSuccess && `
+    &:after {
+      transform: scaleX(1);
+      width: 100%;
+    }
+  `}
 `;
 
 const ModalTitle = styled.h2`
@@ -213,6 +240,12 @@ const IdentityIcon = styled.span`
   margin-right: 8px;
 `;
 
+const ButtonContent = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
 const Welcome: React.FC = () => {
   const navigate = useNavigate();
   const [showButton, setShowButton] = useState(false);
@@ -225,6 +258,7 @@ const Welcome: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [identity, setIdentity] = useState<string | null>(null);
+  const [authSuccess, setAuthSuccess] = useState(false);
   
   // 清除之前保存在localStorage中的访问记录
   useEffect(() => {
@@ -348,6 +382,9 @@ const Welcome: React.FC = () => {
       // 设置身份状态
       setIdentity(data.identity);
       
+      // 设置认证成功状态，不恢复isLoading为false，保持按钮加载状态
+      setAuthSuccess(true);
+      
       // 延迟一下再导航，以便用户看到身份信息
       setTimeout(() => {
         navigate('/home');
@@ -356,7 +393,6 @@ const Welcome: React.FC = () => {
     } catch (err) {
       console.error('登录错误:', err);
       setError(err instanceof Error ? err.message : '验证失败，请重试');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -473,6 +509,7 @@ const Welcome: React.FC = () => {
               exit={{ scale: 0.8, opacity: 0 }}
               transition={{ type: "spring", damping: 25 }}
               onClick={(e) => e.stopPropagation()} // 阻止点击内容区域时关闭模态框
+              $authSuccess={authSuccess}
             >
               <ModalTitle>请输入访问口令</ModalTitle>
               
@@ -504,12 +541,14 @@ const Welcome: React.FC = () => {
               )}
               
               <ModalButton
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={!isLoading && !authSuccess ? { scale: 1.05 } : {}}
+                whileTap={!isLoading && !authSuccess ? { scale: 0.95 } : {}}
                 onClick={handleVerifyPassphrase}
-                disabled={isLoading || !passphrase.trim()}
+                disabled={isLoading || !passphrase.trim() || authSuccess}
               >
-                {isLoading ? '验证中...' : '确认'}
+                <ButtonContent>
+                  {isLoading ? (authSuccess ? '跳转中...' : '验证中...') : '确认'}
+                </ButtonContent>
               </ModalButton>
             </ModalContent>
           </ModalOverlay>

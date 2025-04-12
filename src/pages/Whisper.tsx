@@ -9,6 +9,7 @@ import VisitNotification, { NotificationMessage } from '../components/VisitNotif
 import WhisperBubbles from '../components/WhisperBubbles';
 import WhisperInput from '../components/WhisperInput';
 import { isAuthenticated } from '../services/authService';
+import TipsCarousel from '../components/TipsCarousel';
 
 // 页面容器
 const PageContainer = styled(motion.div)`
@@ -92,15 +93,6 @@ const ErrorContainer = styled.div`
   min-height: 200px;
   color: #e53e3e;
   text-align: center;
-  padding: 0 20px;
-`;
-
-// 底部说明文字
-const FooterText = styled.div`
-  text-align: center;
-  margin-top: 20px;
-  font-size: 0.9rem;
-  color: #999;
   padding: 0 20px;
 `;
 
@@ -296,9 +288,14 @@ const WhisperPage: React.FC = () => {
         </WhispersContainer>
       </ContentContainer>
       
-      <FooterText>
-        戳戳彩色泡泡，解锁神秘留言 ✨ 泡泡被戳破就会消失哦
-      </FooterText>
+      {/* 使用轮播提示替换静态提示 */}
+      <TipsCarousel 
+        tips={[
+          "戳戳彩色泡泡，解锁神秘留言 ✨", 
+          "泡泡被戳破就会消失哦"
+        ]} 
+        interval={4000} 
+      />
       
       {/* 悄悄话输入框 */}
       <WhisperInput onSend={handleSendWhisper} isLoading={isSending} />
