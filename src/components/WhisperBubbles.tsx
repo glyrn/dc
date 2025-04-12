@@ -532,6 +532,12 @@ const WhisperBubbles: React.FC<WhisperBubblesProps> = ({ whispers, onWhisperDele
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            onClick={(e) => {
+              // Only close if the click is directly on the overlay
+              if (e.target === e.currentTarget) {
+                closeModal();
+              }
+            }}
           >
             <MessageModalContent
               initial={{ y: 50, opacity: 0 }}
