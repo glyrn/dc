@@ -476,25 +476,20 @@ const WhisperBubbles: React.FC<WhisperBubblesProps> = ({ whispers, onWhisperDele
     if (isDeleting || !selectedWhisper) return;
     setIsDeleting(true);
     try {
-      // 删除悄悄话，传递 navigate
-      await deleteWhisper(navigate, selectedWhisper.id);
-      
-      // 通知父组件删除成功
+      // 通知父组件删除，并等待其完成
       if (onWhisperDeleted) {
-        onWhisperDeleted(selectedWhisper.id);
+        await onWhisperDeleted(selectedWhisper.id);
       }
-      // 关闭弹窗
+      // 只有在父组件成功删除后才关闭弹窗
       setSelectedWhisper(null);
       setIsModalOpen(false);
     } catch (error) {
-       // 如果错误是认证错误，已经被 handleApiResponse 处理（跳转）
-       if (!(error instanceof Error && error.message.includes("认证已过期"))) {
-          console.error('删除悄悄话失败:', error);
-          alert('删除失败，请稍后再试。');
-       }
-      // 不论成功或失败，最终都要重置删除状态
-      // 保持弹窗打开，让用户知道删除失败
+       // 父组件的 handleWhisperDeleted 应该处理了自己的错误和 alert
+       // 子组件这里可以只 log
+       console.error('Error during whisper deletion (invoked via onWhisperDeleted):', error);
+       // 在出错时，我们可能不希望关闭弹窗，以便用户知道操作失败
     } finally {
+      // 确保无论成功或失败，最终都重置删除状态
       setIsDeleting(false);
     }
   };
@@ -537,7 +532,6 @@ const WhisperBubbles: React.FC<WhisperBubblesProps> = ({ whispers, onWhisperDele
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={closeModal} // 点击背景关闭并删除
           >
             <MessageModalContent
               initial={{ y: 50, opacity: 0 }}
@@ -546,7 +540,7 @@ const WhisperBubbles: React.FC<WhisperBubblesProps> = ({ whispers, onWhisperDele
               transition={{ type: 'spring', stiffness: 200, damping: 20 }}
               onClick={(e) => e.stopPropagation()} // 防止点击内容区关闭
             >
-              <CloseButton onClick={closeModal} disabled={isDeleting}>&times;</CloseButton>
+              <CloseButton onClick={(e) => { e.stopPropagation(); closeModal(); }} disabled={isDeleting}>&times;</CloseButton>
               <MessageContainer>
                 <MessageText>{selectedWhisper.message}</MessageText>
               </MessageContainer>
