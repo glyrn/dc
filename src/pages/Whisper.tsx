@@ -183,6 +183,35 @@ const WhisperPage: React.FC = () => {
             color: getRandomColor()
           };
         });
+        
+      // 计算恋爱天数并添加到消息中
+      const loveStartDate = new Date(2025, 1, 14); // 注意：月份是从0开始的，所以2月是1
+      const today = new Date();
+      const timeDiff = today.getTime() - loveStartDate.getTime();
+      const daysDiff = Math.floor(timeDiff / (1000 * 3600 * 24));
+      
+      // 根据当前时间获取问候语
+      const getGreeting = (): string => {
+        const hour = today.getHours();
+        if (hour >= 5 && hour < 12) {
+          return "宝宝早安";
+        } else if (hour >= 12 && hour < 14) {
+          return "宝宝萬";
+        } else if (hour >= 14 && hour < 18) {
+          return "宝宝下午好";
+        } else {
+          return "宝宝睡觉啦";
+        }
+      };
+      
+      // 添加恋爱天数消息
+      const loveMessage: NotificationMessage = {
+        id: 'love-days',
+        content: `${getGreeting()} ${daysDiff} ❤️ ｜日子在慢慢发光 ✨`,
+        color: 'pink' // 使用预定义的粉色
+      };
+      
+      messages.push(loveMessage);
       
       setNotificationMessages(messages);
     } catch (err) {
