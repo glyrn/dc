@@ -259,8 +259,9 @@ const Welcome: React.FC = () => {
   const [error, setError] = useState('');
   const [identity, setIdentity] = useState<string | null>(null);
   const [authSuccess, setAuthSuccess] = useState(false);
+  const [showExpiredNotice, setShowExpiredNotice] = useState(false); // 新增状态：是否显示过期提示
   
-  // 清除之前保存在localStorage中的访问记录
+  // 清除之前保存在localStorage中的访问记录，并检查认证是否过期
   useEffect(() => {
     localStorage.removeItem('hasVisited');
     
@@ -271,6 +272,18 @@ const Welcome: React.FC = () => {
     if (token && storedIdentity) {
       // 已有token，直接设置身份
       setIdentity(storedIdentity);
+    }
+    
+    // 检查是否是因为认证过期而跳转回来的
+    const authExpired = localStorage.getItem('auth_expired');
+    if (authExpired === 'true') {
+      setShowExpiredNotice(true);
+      // 显示认证过期的信息
+      setError('您的登录已过期，请重新登录');
+      // 自动打开登录模态框
+      setShowLoginModal(true);
+      // 清除标记，避免刷新页面后仍然显示
+      localStorage.removeItem('auth_expired');
     }
   }, []);
   
@@ -317,10 +330,15 @@ const Welcome: React.FC = () => {
     setProgressComplete(false);
   };
   
-  // 修改进入按钮点击事件，显示登录模态框
+  // 点击进入按钮的处理函数
   const handleEnter = () => {
+    // 检查是否已经登录
+    const token = localStorage.getItem('auth_token');
+    const storedIdentity = localStorage.getItem('user_identity');
+    
     // 如果已经有身份和token，直接导航到主页
-    if (identity && localStorage.getItem('auth_token')) {
+    if (token && storedIdentity) {
+      setIdentity(storedIdentity); // 确保身份状态与localStorage同步
       navigate('/home');
       return;
     }
@@ -328,6 +346,9 @@ const Welcome: React.FC = () => {
     // 否则显示登录模态框
     setShowLoginModal(true);
     setError(''); // 清除之前的错误信息
+    setAuthSuccess(false); // 重置认证状态
+    setIsLoading(false); // 确保加载状态被重置
+    setPassphrase(''); // 清空输入框
   };
   
   // 处理登录验证
@@ -501,7 +522,14 @@ const Welcome: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setShowLoginModal(false)}
+            onClick={() => {
+              // 只有在未加载和未验证成功的情况下才允许关闭
+              if (!isLoading && !authSuccess) {
+                setShowLoginModal(false);
+                setError('');
+                setPassphrase('');
+              }
+            }}
           >
             <ModalContent
               initial={{ scale: 0.8, opacity: 0 }}

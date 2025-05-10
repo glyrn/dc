@@ -61,9 +61,19 @@ export const handleApiResponse = async <T>(
 ): Promise<T> => {
   if (response.status === 401) {
     console.error("认证失败: Token 无效或已过期 (handled by handleApiResponse)");
-    clearAuthToken(); // 清除 token
-    localStorage.removeItem("user_identity"); // 也清除用户标识
-    navigate("/"); // 重定向到欢迎/登录页面
+    
+    // 在跳转前检查是否已经在欢迎页面，避免重复跳转
+    if (window.location.pathname !== "/") {
+      clearAuthToken(); // 清除 token
+      localStorage.removeItem("user_identity"); // 也清除用户标识
+      
+      // 添加提示消息，让用户知道发生了什么
+      localStorage.setItem("auth_expired", "true");
+      
+      // 使用 replace 而不是 push，这样用户返回时不会回到需要认证的页面
+      navigate("/", { replace: true });
+    }
+    
     throw new Error("认证已过期，请重新登录");
   }
 

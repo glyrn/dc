@@ -193,14 +193,30 @@ const WhisperPage: React.FC = () => {
       // 根据当前时间获取问候语
       const getGreeting = (): string => {
         const hour = today.getHours();
-        if (hour >= 5 && hour < 12) {
-          return "宝宝早安";
-        } else if (hour >= 12 && hour < 14) {
-          return "宝宝萬";
-        } else if (hour >= 14 && hour < 18) {
-          return "宝宝下午好";
-        } else {
-          return "宝宝睡觉啦";
+        switch (hour) {
+          case 5:
+          case 6:
+          case 7:
+          case 8:
+          case 9:
+          case 10:
+          case 11:
+            return "宝宝早安";
+          case 12:
+          case 13:
+            return "宝宝萬"; 
+          case 14:
+          case 15:
+          case 16:
+          case 17:
+            return "宝宝下午好";
+          case 18:
+          case 19:
+          case 20:
+          case 21:
+            return "宝宝晚上好"; // 新增晚上好
+          default: // 覆盖 0-4点 和 22-23点
+            return "宝宝睡觉啦";
         }
       };
       
