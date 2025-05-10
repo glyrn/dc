@@ -1,0 +1,51 @@
+# .github/workflows/deploy.yml
+name: 🚀 前端自动部署
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout 仓库
+        uses: actions/checkout@v3
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: 安装依赖 & 打包
+        run: |
+          npm ci
+          npm run build
+
+      - name: 启用 SSH Agent
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: 添加服务器到 known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: 部署到服务器
+        run: scp -r build/* ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ secrets.DEST_DIR }}
+
+      - name: 发送邮件通知
+        if: success()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USER }}
+          password: ${{ secrets.SMTP_PASS }}
+          subject: "🎉 前端项目部署成功通知"
+          to: ${{ secrets.NOTIFY_EMAIL }}
+          from: "GitHub Actions <${{ secrets.SMTP_USER }}>"
+
