@@ -22,7 +22,7 @@ jobs:
       - name: 安装依赖 & 打包
         run: |
           npm ci
-          npm run build
+          CI=false npm run build
 
       - name: 启用 SSH Agent
         uses: webfactory/ssh-agent@v0.5.3
