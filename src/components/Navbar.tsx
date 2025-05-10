@@ -476,6 +476,7 @@ const Navbar: React.FC = () => {
               首页
             </MenuItem>
           </NavLink>
+          {/* 暂时隐藏相册入口 
           <NavLink>
             <MenuItem 
               to="/gallery" 
@@ -485,6 +486,7 @@ const Navbar: React.FC = () => {
               相册
             </MenuItem>
           </NavLink>
+          */}
           <NavLink>
             <MenuItem 
               to="/diary" 
