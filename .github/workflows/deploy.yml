@@ -46,6 +46,6 @@ jobs:
           username: ${{ secrets.SMTP_USER }}
           password: ${{ secrets.SMTP_PASS }}
           subject: "🎉 前端项目部署成功通知"
-          to: ${{ secrets.NOTIFY_EMAIL }}
+          to: 498537029@qq.com
           from: "GitHub Actions <${{ secrets.SMTP_USER }}>"
 
