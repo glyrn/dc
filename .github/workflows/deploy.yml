@@ -46,6 +46,6 @@ jobs:
           username: ${{ secrets.SMTP_USER }}
           password: ${{ secrets.SMTP_PASS }}
           subject: "🎉 cutcut 部署成功"
-          to: 498537029@qq.com
+          to: goree.gly@gmail.com
           from: "GitHub Actions <${{ secrets.SMTP_USER }}>"
 
