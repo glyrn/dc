@@ -48,4 +48,9 @@ jobs:
           subject: "🎉 cutcut 部署成功"
           to: goree.gly@gmail.com
           from: "GitHub Actions <${{ secrets.SMTP_USER }}>"
+          body: |
+            部署完成啦！  
+            • 仓库：${{ github.repository }}  
+            • 分支：${{ github.ref_name }}  
+            • 提交：${{ github.sha }}  
 
