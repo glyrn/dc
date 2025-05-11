@@ -1,0 +1,48 @@
+name: 每日随机值＆恋爱纪念邮件（21点±10分）
+
+on:
+  schedule:
+    - cron: '50 12 * * *'  # UTC 12:50 → 本地 20:50
+
+jobs:
+  send_random_email:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 随机等待（±10 分钟）
+        run: |
+          DELAY=$(( RANDOM % 1200 ))
+          echo "⏱️ 睡眠 ${DELAY} 秒…"
+          sleep $DELAY
+
+      - name: 计算随机值
+        run: |
+          VALUE=$(( RANDOM % 10000 ))
+          echo "RANDOM_VALUE=$VALUE" >> $GITHUB_ENV
+
+      - name: 计算恋爱天数
+        env:
+          # 这里填你们正式在一起的日期（YYYY-MM-DD）
+          START_DATE: '2025-02-14'
+        run: |
+          # 用 Linux date 算秒差再除以 86400
+          now_ts=$(date +%s)
+          start_ts=$(date -d "$START_DATE" +%s)
+          days=$(( (now_ts - start_ts) / 86400 ))
+          echo "daysDiff=$days" >> $GITHUB_ENV
+
+      - name: 发送邮件通知
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port:    ${{ secrets.SMTP_PORT }}
+          username:       ${{ secrets.SMTP_USER }}
+          password:       ${{ secrets.SMTP_PASS }}
+          subject:        "💌 每日随机＆纪念日通知"
+          to:             goree.gly@gmail.com, 2028282676@qq.com
+          from:           "GitHub Actions <${{ secrets.SMTP_USER }}>"
+          body: |
+            晚上好～  
+            今天是我们恋爱的第 ${{ env.daysDiff }} 天啦！❤️  
+            快去记录今天发生的事情吧！
+            👉 https://flisa.love.goree.tech
+          
