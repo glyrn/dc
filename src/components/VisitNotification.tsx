@@ -65,6 +65,56 @@ const NotificationItem = styled.div<{
   color: #333;
   font-weight: 500;
   display: ${props => props.isVisible ? 'block' : 'none'};
+  
+  /* 添加文本溢出处理 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  
+  /* 针对移动设备优化 */
+  @media (max-width: 768px) {
+    font-size: 14px;
+    padding: 14px 18px;
+    padding-right: 40px; /* 为叉号留出空间 */
+    position: relative;
+    text-align: left;
+    white-space: normal; /* 允许文本换行 */
+    max-height: 60px; /* 限制最大高度 */
+    overflow-y: auto; /* 内容过多时显示滚动条 */
+    overflow-wrap: break-word; /* 单词过长时换行 */
+    word-break: break-all; /* 强制字符换行 */
+  }
+`;
+
+// 添加关闭按钮样式
+const CloseButton = styled.button`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  
+  &:hover {
+    color: #333;
+  }
+  
+  /* 移动端样式优化 */
+  @media (max-width: 768px) {
+    top: 8px;
+    right: 8px;
+    font-size: 14px;
+  }
 `;
 
 // 无消息提示
@@ -142,6 +192,21 @@ const VisitNotification: React.FC<VisitNotificationProps> = ({ messages }) => {
     }
   };
   
+  // 手动切换到下一条消息
+  const goToNextMessage = () => {
+    if (validMessages.length <= 1) return;
+    
+    setIsExiting(true);
+    setTimeout(() => {
+      setIsVisible(false);
+      setTimeout(() => {
+        setCurrentIndex(prev => (prev + 1) % validMessages.length);
+        setIsExiting(false);
+        setIsVisible(true);
+      }, 100);
+    }, 300);
+  };
+  
   // 当前显示的消息
   const currentMessage = hasMessages ? validMessages[currentIndex] : null;
   
@@ -156,6 +221,9 @@ const VisitNotification: React.FC<VisitNotificationProps> = ({ messages }) => {
             color={getColorRGB(currentMessage)}
           >
             {currentMessage.content}
+            <CloseButton onClick={goToNextMessage}>
+              ×
+            </CloseButton>
           </NotificationItem>
         )
       ) : (

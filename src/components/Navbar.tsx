@@ -502,7 +502,7 @@ const Navbar: React.FC = () => {
               isActive={location.pathname === '/timeline'}
               onClick={closeMenu}
             >
-              时间轴
+              时刻
             </MenuItem>
           </NavLink>
           <NavLink>
