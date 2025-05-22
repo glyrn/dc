@@ -75,7 +75,6 @@ const NotificationItem = styled.div<{
   @media (max-width: 768px) {
     font-size: 14px;
     padding: 14px 18px;
-    padding-right: 40px; /* 为叉号留出空间 */
     position: relative;
     text-align: left;
     white-space: normal; /* 允许文本换行 */
@@ -83,37 +82,6 @@ const NotificationItem = styled.div<{
     overflow-y: auto; /* 内容过多时显示滚动条 */
     overflow-wrap: break-word; /* 单词过长时换行 */
     word-break: break-all; /* 强制字符换行 */
-  }
-`;
-
-// 添加关闭按钮样式
-const CloseButton = styled.button`
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: none;
-  border: none;
-  color: #999;
-  font-size: 16px;
-  cursor: pointer;
-  padding: 0;
-  margin: 0;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-  
-  &:hover {
-    color: #333;
-  }
-  
-  /* 移动端样式优化 */
-  @media (max-width: 768px) {
-    top: 8px;
-    right: 8px;
-    font-size: 14px;
   }
 `;
 
@@ -221,9 +189,6 @@ const VisitNotification: React.FC<VisitNotificationProps> = ({ messages }) => {
             color={getColorRGB(currentMessage)}
           >
             {currentMessage.content}
-            <CloseButton onClick={goToNextMessage}>
-              ×
-            </CloseButton>
           </NotificationItem>
         )
       ) : (
