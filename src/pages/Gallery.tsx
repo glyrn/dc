@@ -5,6 +5,7 @@ import { FiPlus, FiHeart, FiCamera } from 'react-icons/fi';
 import AlbumCard from '../components/AlbumCard';
 import CreateAlbumModal from '../components/CreateAlbumModal';
 import AlbumDetail from '../components/AlbumDetail';
+import imageCompression from 'browser-image-compression';
 import { 
   getAlbums, 
   createAlbum, 
@@ -236,15 +237,66 @@ const Gallery: React.FC = () => {
       setUploading(true);
       setError(null);
 
-      const uploadPromises = Array.from(files).map(file => 
-        uploadImageToAlbum(selectedAlbum.id, file)
+      const processedFiles: File[] = [];
+      for (const file of Array.from(files)) {
+        if (!file.type.startsWith('image/')) {
+          console.warn(`文件 ${file.name} 不是图片，已跳过压缩处理。`);
+          // 决定是否依然上传非图片文件，或提示用户
+          // processedFiles.push(file); // 如果仍要上传
+          continue; // 这里选择跳过非图片文件
+        }
+
+        try {
+          const options = {
+            maxSizeMB: 0.1, // 目标最大 100KB
+            maxWidthOrHeight: 1920, // 可选：限制图片最大尺寸，保持纵横比
+            useWebWorker: true,
+            fileType: 'image/webp', // 转换为 WebP
+            initialQuality: 0.75, // 初始压缩质量，可以调整
+            // webPModule: () => import('webp-converter-browser'), // 如果需要特定 WebP 模块
+          };
+          console.log(`正在压缩图片: ${file.name}`);
+          const compressedBlob = await imageCompression(file, options);
+          // 使用原始文件名（或生成新文件名），但扩展名更改为 .webp
+          const newFileName = file.name.substring(0, file.name.lastIndexOf('.')) + '.webp';
+          const compressedFile = new File([compressedBlob], newFileName, {
+            type: 'image/webp',
+            lastModified: Date.now(),
+          });
+          console.log(`图片压缩完成: ${compressedFile.name}, 大小: ${(compressedFile.size / 1024).toFixed(2)} KB`);
+          processedFiles.push(compressedFile);
+        } catch (compressionError) {
+          console.error(`图片 ${file.name} 压缩失败:`, compressionError);
+          setError(`图片 ${file.name} 压缩失败，将尝试上传原图。`);
+          // 压缩失败，可以选择上传原图或不上传
+          processedFiles.push(file); 
+        }
+      }
+
+      if (processedFiles.length === 0) {
+        setUploading(false);
+        // 可以设置一个消息提示用户没有有效图片被处理
+        setError("没有有效的图片被选中或处理成功。");
+        return;
+      }
+      
+      const uploadPromises = processedFiles.map(processedFile => 
+        uploadImageToAlbum(selectedAlbum.id, processedFile)
       );
 
-      const uploadedImages = await Promise.all(uploadPromises);
-      setAlbumImages(prev => [...uploadedImages, ...prev]);
+      const uploadedImageResults = await Promise.all(uploadPromises);
+      // 假设 uploadImageToAlbum 返回的是 AlbumImage 类型或者包含其必要信息
+      // 如果返回的不是完整的 AlbumImage，可能需要调整这里的逻辑
+      // 或者在 uploadImageToAlbum 内部处理好返回的结构
+      setAlbumImages(prev => [...uploadedImageResults, ...prev]);
     } catch (error) {
       console.error('上传图片失败:', error);
-      setError('上传图片失败，请稍后重试');
+      // 更具体的错误信息
+      if (error instanceof Error) {
+        setError(`上传图片失败: ${error.message}`);
+      } else {
+        setError('上传图片失败，请稍后重试');
+      }
     } finally {
       setUploading(false);
     }
