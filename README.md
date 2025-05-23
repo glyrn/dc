@@ -356,7 +356,7 @@ API 基础路径: `[REACT_APP_API_BASE_URL]` (例如: `https://api.love.goree.te
   ```
 
   {
-    "error": "Token已过期"
+  "error": "Token已过期"
   }
 
 ```
@@ -472,7 +472,6 @@ API 基础路径: `[REACT_APP_API_BASE_URL]` (例如: `https://api.love.goree.te
   - `401 Unauthorized`: Token 缺失、无效或过期。
   - `500 Internal Server Error`: 服务器内部错误。
 
-
 ### 3. 删除悄悄话
 
 - **Endpoint:** `DELETE /api/whispers/{whisper_id}`
@@ -506,3 +505,108 @@ API 基础路径: `[REACT_APP_API_BASE_URL]` (例如: `https://api.love.goree.te
     }
     ```
   - `500 Internal Server Error`: 服务器内部错误。
+
+
+
+
+## API 文档 - 相册 (Album)
+
+**基础路径:** (与项目其他 API 保持一致)
+**认证:** 所有接口均需 `Authorization: Bearer <token>`
+
+### 1. 新建相册
+
+- **Endpoint:** `POST /api/albums`
+- **描述:** 新建一个相册。
+- **请求体 (application/json):**
+  ```json
+  {
+    "name": "相册名称",      // 必需
+    "description": "描述"   // 可选
+  }
+  ```
+- **成功响应 (201 Created):**
+  ```json
+  {
+    "id": 1,
+    "name": "相册名称",
+    "description": "描述",
+    "created_at": "2024-08-01T12:00:00Z"
+  }
+  ```
+- **错误响应:**
+  - `400 Bad Request`: 参数缺失或无效
+  - `401 Unauthorized`: 未认证
+  - `500 Internal Server Error`: 服务器错误
+
+---
+
+### 2. 获取相册列表
+
+- **Endpoint:** `GET /api/albums`
+- **描述:** 获取所有相册的列表。
+- **成功响应 (200 OK):**
+  ```json
+  [
+    {
+      "id": 1,
+      "name": "相册名称",
+      "description": "描述",
+      "created_at": "2024-08-01T12:00:00Z"
+    }
+    // ...更多相册
+  ]
+  ```
+- **错误响应:**
+  - `401 Unauthorized`: 未认证
+  - `500 Internal Server Error`: 服务器错误
+
+---
+
+### 3. 在相册中上传图片
+
+- **Endpoint:** `POST /api/albums/{album_id}/upload`
+- **描述:** 向指定相册上传图片。
+- **路径参数:**
+  - `album_id` (integer, 必需): 相册ID
+- **请求体:** `multipart/form-data`，字段 `file`为图片文件
+- **成功响应 (201 Created):**
+  ```json
+  {
+    "url": "https://minio.api.goree.tech/dc-picture/album/1/2024-08-01/uuid.jpg",
+    "filename": "原始文件名.jpg",
+    "size": 12345,
+    "content_type": "image/jpeg"
+  }
+  ```
+- **错误响应:**
+  - `400 Bad Request`: 参数缺失或无效
+  - `401 Unauthorized`: 未认证
+  - `404 Not Found`: 相册不存在
+  - `500 Internal Server Error`: 服务器错误
+
+---
+
+### 4. 获取相册图片列表
+
+- **Endpoint:** `GET /api/albums/{album_id}/images`
+- **描述:** 获取指定相册下所有图片的列表。
+- **路径参数:**
+  - `album_id` (integer, 必需): 相册ID
+- **成功响应 (200 OK):**
+  ```json
+  [
+    {
+      "url": "https://minio.api.goree.tech/dc-picture/album/1/2024-08-01/uuid.jpg",
+      "filename": "原始文件名.jpg",
+      "size": 12345,
+      "content_type": "image/jpeg",
+      "uploaded_at": "2024-08-01T12:00:00Z"
+    }
+    // ...更多图片
+  ]
+  ```
+- **错误响应:**
+  - `401 Unauthorized`: 未认证
+  - `404 Not Found`: 相册不存在
+  - `500 Internal Server Error`: 服务器错误

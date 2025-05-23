@@ -6,8 +6,7 @@ import { AnimatePresence } from 'framer-motion';
 // 使用懒加载替代直接导入
 const Home = lazy(() => import('./pages/Home'));
 const Welcome = lazy(() => import('./pages/Welcome'));
-// 暂时隐藏相册入口
-// const Gallery = lazy(() => import('./pages/Gallery'));
+const Gallery = lazy(() => import('./pages/Gallery'));
 const Timeline = lazy(() => import('./pages/Timeline'));
 const Diary = lazy(() => import('./pages/Diary'));
 const Whisper = lazy(() => import('./pages/Whisper'));
@@ -83,7 +82,6 @@ function App() {
                 </NavbarLayout>
               </ProtectedRoute>
             } />
-            {/* 暂时隐藏相册路由
             <Route path="/gallery" element={
               <ProtectedRoute>
                 <NavbarLayout>
@@ -91,7 +89,6 @@ function App() {
                 </NavbarLayout>
               </ProtectedRoute>
             } />
-            */}
             <Route path="/diary" element={
               <ProtectedRoute>
                 <NavbarLayout>
