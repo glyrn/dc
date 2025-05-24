@@ -99,8 +99,8 @@ const Input = styled.input`
   
   &:focus {
     outline: none;
-    border-color: #fd7e14;
-    box-shadow: 0 0 0 0.2rem rgba(253, 126, 20, 0.25);
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
     background-color: #fff;
   }
   
@@ -123,8 +123,8 @@ const TextArea = styled.textarea`
   
   &:focus {
     outline: none;
-    border-color: #fd7e14;
-    box-shadow: 0 0 0 0.2rem rgba(253, 126, 20, 0.25);
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
     background-color: #fff;
   }
   
@@ -151,15 +151,15 @@ const Button = styled(motion.button)<{ $variant?: 'primary' | 'secondary' }>`
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   
   ${props => props.$variant === 'primary' ? `
-    background-color: #fd7e14;
+    background-color: #007bff;
     color: white;
     
     &:hover:not(:disabled) {
-      background-color: #e67e22;
+      background-color: #0056b3;
     }
     
     &:disabled {
-      background-color: #ffccbc;
+      background-color: #b8d9ff;
       opacity: 0.7;
       cursor: not-allowed;
     }

@@ -66,7 +66,7 @@ const FloatingActionButton = styled(motion.button)`
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #fd7e14, #ff5722);
+  background: linear-gradient(135deg, #007bff, #0056b3);
   border: none;
   color: white;
   font-size: 28px;
@@ -74,24 +74,24 @@ const FloatingActionButton = styled(motion.button)`
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 6px 18px rgba(253, 126, 20, 0.4);
+  box-shadow: 0 6px 18px rgba(0, 123, 255, 0.4);
   z-index: 1000;
   transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
   
   &:hover {
-    background: linear-gradient(135deg, #ff5722, #fd7e14);
+    background: linear-gradient(135deg, #0056b3, #007bff);
     transform: translateY(-3px) scale(1.05);
-    box-shadow: 0 8px 25px rgba(253, 126, 20, 0.5);
+    box-shadow: 0 8px 25px rgba(0, 123, 255, 0.5);
   }
   
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(253, 126, 20, 0.3);
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.3);
   }
   
   &:active {
     transform: translateY(0) scale(1);
-    box-shadow: 0 4px 12px rgba(253, 126, 20, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
   }
 `;
 
@@ -335,10 +335,10 @@ const Gallery: React.FC = () => {
   // 渲染相册列表页面
   const renderAlbumList = () => (
     <>
-      <PageHeader>
+      {/* <PageHeader>
         <PageTitle>我们的照片墙</PageTitle>
         <PageSubtitle>用影像定格每一刻，记录爱的故事</PageSubtitle>
-      </PageHeader>
+      </PageHeader> */}
 
       {error && <ErrorMessage>{error}</ErrorMessage>}
 

@@ -37,23 +37,23 @@ const HeaderLeft = styled.div`
 `;
 
 const BackButton = styled(motion.button)`
-  background: linear-gradient(135deg, #fd7e14, #ff5722);
+  background: linear-gradient(135deg, #007bff, #0056b3);
   color: white;
   border: none;
   border-radius: 12px;
-  padding: 10px 15px; // 调整padding
+  padding: 10px 15px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem; // 调整字号
-  box-shadow: 0 4px 12px rgba(253, 126, 20, 0.3);
+  font-size: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
   transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
 
   &:hover {
-    background: linear-gradient(135deg, #ff5722, #fd7e14);
+    background: linear-gradient(135deg, #0056b3, #007bff);
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(253, 126, 20, 0.4);
+    box-shadow: 0 6px 16px rgba(0, 123, 255, 0.4);
   }
 `;
 
