@@ -87,6 +87,19 @@ const AlbumName = styled.h3`
   white-space: nowrap;
 `;
 
+const AlbumDescription = styled.p`
+  color: #757575;
+  font-size: 0.85rem;
+  margin: 0 0 12px 0;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  min-height: calc(0.85rem * 1.4 * 2);
+`;
+
 const AlbumMeta = styled.div`
   display: flex;
   align-items: center;
@@ -167,6 +180,11 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, onClick }) => {
         <AlbumName title={album.name}>
           {album.name}
         </AlbumName>
+        {album.description && (
+          <AlbumDescription title={album.description}>
+            {album.description}
+          </AlbumDescription>
+        )}
         <AlbumMeta>
           <MetaItem>
             {(FiCalendar as any)({ size: 14 })}
