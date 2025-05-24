@@ -13,9 +13,12 @@ interface AlbumDetailProps {
 }
 
 const Container = styled.div`
-  padding: 100px 20px 20px;
+  padding: 60px 20px 20px;
   max-width: 1200px;
   margin: 0 auto;
+  background-color: #ffffff;
+  color: #333;
+  min-height: calc(100vh - 60px);
 `;
 
 const Header = styled.div`
@@ -24,7 +27,7 @@ const Header = styled.div`
   justify-content: space-between;
   margin-bottom: 30px;
   padding-bottom: 20px;
-  border-bottom: 2px solid rgba(255, 182, 193, 0.2);
+  border-bottom: 1px solid #dee2e6; // 浅色边框
 `;
 
 const HeaderLeft = styled.div`
@@ -34,55 +37,61 @@ const HeaderLeft = styled.div`
 `;
 
 const BackButton = styled(motion.button)`
-  background: linear-gradient(135deg, #ff69b4, #ff8a80);
+  background: linear-gradient(135deg, #fd7e14, #ff5722);
   color: white;
   border: none;
   border-radius: 12px;
-  padding: 10px;
+  padding: 10px 15px; // 调整padding
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  box-shadow: 0 4px 12px rgba(255, 105, 180, 0.3);
-  
+  font-size: 1rem; // 调整字号
+  box-shadow: 0 4px 12px rgba(253, 126, 20, 0.3);
+  transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+
   &:hover {
+    background: linear-gradient(135deg, #ff5722, #fd7e14);
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(255, 105, 180, 0.4);
+    box-shadow: 0 6px 16px rgba(253, 126, 20, 0.4);
   }
 `;
 
 const AlbumTitle = styled.h1`
-  color: #d63384;
-  font-size: 2rem;
+  color: #212529;
+  font-size: 1.8rem; // 调整字号
   font-weight: 600;
   margin: 0;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
 `;
 
 const UploadButton = styled(motion.label)`
-  background: linear-gradient(135deg, #ff8a80, #ffb6c1);
+  background: linear-gradient(135deg, #007bff, #0056b3); // 蓝色系上传按钮
   color: white;
   border: none;
   border-radius: 12px;
-  padding: 12px 20px;
+  padding: 10px 20px;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 0.9rem;
   font-weight: 500;
-  box-shadow: 0 4px 12px rgba(255, 138, 128, 0.3);
-  
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+  transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+
   &:hover:not(:disabled) {
+    background: linear-gradient(135deg, #0056b3, #007bff);
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(255, 138, 128, 0.4);
+    box-shadow: 0 6px 16px rgba(0, 123, 255, 0.4);
   }
   
   &[aria-disabled="true"] {
     opacity: 0.6;
     cursor: not-allowed;
     pointer-events: none;
+    background: #6c757d;
+    box-shadow: none;
   }
 `;
 
@@ -92,28 +101,29 @@ const HiddenInput = styled.input`
 
 const PhotoGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); // 可以调整图片大小
+  gap: 15px;
   margin-top: 20px;
 `;
 
 const PhotoCard = styled(motion.div)`
-  background: white;
-  border-radius: 15px;
+  background-color: #ffffff;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 8px 20px rgba(255, 105, 180, 0.1);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out;
+  aspect-ratio: 1 / 1; // 保持卡片为正方形，可调整
   
   &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 35px rgba(255, 105, 180, 0.2);
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
   }
 `;
 
 const PhotoWrapper = styled.div`
   width: 100%;
-  padding-top: 100%;
+  height: 100%; // 修改为100%以配合aspect-ratio
   position: relative;
   overflow: hidden;
 `;
@@ -135,19 +145,26 @@ const Photo = styled.img`
 const EmptyState = styled.div`
   text-align: center;
   padding: 60px 20px;
-  color: #c39bd3;
+  color: #6c757d;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
 `;
 
 const EmptyIcon = styled.div`
-  font-size: 4rem;
-  margin-bottom: 20px;
-  opacity: 0.6;
+  font-size: 3.5rem;
+  margin-bottom: 15px;
+  opacity: 0.7;
+  color: #adb5bd;
 `;
 
 const EmptyText = styled.p`
-  font-size: 1.1rem;
+  font-size: 1rem;
   margin: 0;
   line-height: 1.5;
+  color: #495057;
 `;
 
 // 大图查看模态框

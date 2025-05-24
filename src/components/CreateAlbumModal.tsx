@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiX, FiHeart, FiCamera } from 'react-icons/fi';
+import { FiX, FiPlusSquare, FiType, FiFileText } from 'react-icons/fi';
 
 interface CreateAlbumModalProps {
   isOpen: boolean;
@@ -16,7 +16,7 @@ const ModalOverlay = styled(motion.div)`
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -25,32 +25,31 @@ const ModalOverlay = styled(motion.div)`
 `;
 
 const ModalContent = styled(motion.div)`
-  background: linear-gradient(135deg, #ffeef8 0%, #fff5f0 100%);
-  border-radius: 20px;
-  padding: 30px;
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 30px 35px;
   width: 100%;
-  max-width: 450px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  max-width: 480px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   position: relative;
-  border: 1px solid rgba(255, 182, 193, 0.3);
 `;
 
 const CloseButton = styled.button`
   position: absolute;
-  top: 15px;
-  right: 15px;
+  top: 18px;
+  right: 18px;
   background: none;
   border: none;
   cursor: pointer;
-  color: #ff69b4;
-  font-size: 20px;
+  color: #adb5bd;
+  font-size: 1.5rem;
   padding: 5px;
   border-radius: 50%;
-  transition: all 0.3s ease;
+  transition: color 0.2s ease, background-color 0.2s ease;
   
   &:hover {
-    background-color: rgba(255, 105, 180, 0.1);
-    transform: scale(1.1);
+    color: #495057;
+    background-color: #e9ecef;
   }
 `;
 
@@ -59,30 +58,12 @@ const ModalHeader = styled.div`
   margin-bottom: 25px;
 `;
 
-const ModalIcon = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 60px;
-  height: 60px;
-  background: linear-gradient(135deg, #ff69b4, #ff8a80);
-  border-radius: 50%;
-  margin: 0 auto 15px;
-  color: white;
-  font-size: 24px;
-  box-shadow: 0 8px 16px rgba(255, 105, 180, 0.3);
-`;
-
 const ModalTitle = styled.h2`
-  color: #d63384;
-  font-size: 1.5rem;
+  color: #212529;
+  font-size: 1.6rem;
   margin: 0;
   font-weight: 600;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-`;
-
-const TitleIcon = styled.span`
-  margin-left: 8px;
 `;
 
 const Form = styled.form`
@@ -98,7 +79,7 @@ const InputGroup = styled.div`
 `;
 
 const Label = styled.label`
-  color: #8e44ad;
+  color: #495057;
   font-weight: 500;
   font-size: 0.9rem;
   display: flex;
@@ -108,88 +89,93 @@ const Label = styled.label`
 
 const Input = styled.input`
   padding: 12px 16px;
-  border: 2px solid #f8bbd9;
-  border-radius: 12px;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
   font-size: 1rem;
-  background-color: rgba(255, 255, 255, 0.8);
-  transition: all 0.3s ease;
+  background-color: #f8f9fa;
+  color: #343a40;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   
   &:focus {
     outline: none;
-    border-color: #ff69b4;
-    box-shadow: 0 0 0 3px rgba(255, 105, 180, 0.1);
-    background-color: white;
+    border-color: #fd7e14;
+    box-shadow: 0 0 0 0.2rem rgba(253, 126, 20, 0.25);
+    background-color: #fff;
   }
   
   &::placeholder {
-    color: #c39bd3;
+    color: #adb5bd;
   }
 `;
 
 const TextArea = styled.textarea`
   padding: 12px 16px;
-  border: 2px solid #f8bbd9;
-  border-radius: 12px;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
   font-size: 1rem;
-  background-color: rgba(255, 255, 255, 0.8);
-  transition: all 0.3s ease;
+  background-color: #f8f9fa;
+  color: #343a40;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   resize: vertical;
-  min-height: 80px;
+  min-height: 100px;
   
   &:focus {
     outline: none;
-    border-color: #ff69b4;
-    box-shadow: 0 0 0 3px rgba(255, 105, 180, 0.1);
-    background-color: white;
+    border-color: #fd7e14;
+    box-shadow: 0 0 0 0.2rem rgba(253, 126, 20, 0.25);
+    background-color: #fff;
   }
   
   &::placeholder {
-    color: #c39bd3;
+    color: #adb5bd;
   }
 `;
 
 const ButtonGroup = styled.div`
   display: flex;
   gap: 12px;
-  margin-top: 10px;
+  margin-top: 15px;
+  justify-content: flex-end;
 `;
 
 const Button = styled(motion.button)<{ $variant?: 'primary' | 'secondary' }>`
-  flex: 1;
-  padding: 12px 20px;
+  padding: 10px 20px;
   border: none;
-  border-radius: 12px;
-  font-size: 1rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.1s ease;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   
   ${props => props.$variant === 'primary' ? `
-    background: linear-gradient(135deg, #ff69b4, #ff8a80);
+    background-color: #fd7e14;
     color: white;
-    box-shadow: 0 4px 12px rgba(255, 105, 180, 0.3);
     
     &:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(255, 105, 180, 0.4);
+      background-color: #e67e22;
     }
     
     &:disabled {
-      opacity: 0.6;
+      background-color: #ffccbc;
+      opacity: 0.7;
       cursor: not-allowed;
     }
   ` : `
-    background-color: rgba(255, 105, 180, 0.1);
-    color: #d63384;
-    border: 1px solid rgba(255, 105, 180, 0.3);
-    
-    &:hover {
-      background-color: rgba(255, 105, 180, 0.2);
+    background-color: #e9ecef;
+    color: #495057;
+    border: 1px solid #dee2e6;
+
+    &:hover:not(:disabled) {
+      background-color: #ced4da;
     }
   `}
+  
+  &:active:not(:disabled) {
+    transform: scale(0.98);
+  }
 `;
 
 const LoadingSpinner = styled.div`
@@ -266,24 +252,19 @@ const CreateAlbumModal: React.FC<CreateAlbumModalProps> = ({
             </CloseButton>
             
             <ModalHeader>
-              <ModalIcon>
-                {(FiCamera as any)()}
-              </ModalIcon>
               <ModalTitle>
                 创建新相册
-                <TitleIcon>
-                  {(FiHeart as any)({ size: 14 })}
-                </TitleIcon>
               </ModalTitle>
             </ModalHeader>
 
             <Form onSubmit={handleSubmit}>
               <InputGroup>
-                <Label>
-                  {(FiHeart as any)({ size: 14 })}
+                <Label htmlFor="albumName">
+                  {(FiType as any)({ size: 16, style: { marginRight: '4px' } })}
                   相册名称
                 </Label>
                 <Input
+                  id="albumName"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -295,10 +276,12 @@ const CreateAlbumModal: React.FC<CreateAlbumModalProps> = ({
               </InputGroup>
 
               <InputGroup>
-                <Label>
+                <Label htmlFor="albumDescription">
+                  {(FiFileText as any)({ size: 16, style: { marginRight: '4px' } })}
                   相册描述（可选）
                 </Label>
                 <TextArea
+                  id="albumDescription"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="记录下这本相册的特殊意义..."

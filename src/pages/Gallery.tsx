@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiPlus, FiHeart, FiCamera } from 'react-icons/fi';
+import { FiPlus, FiImage } from 'react-icons/fi';
 import AlbumCard from '../components/AlbumCard';
 import CreateAlbumModal from '../components/CreateAlbumModal';
 import AlbumDetail from '../components/AlbumDetail';
@@ -19,89 +19,91 @@ import {
 // 页面状态类型
 type PageState = 'list' | 'detail';
 
+// 扩展 Album 类型以包含封面图片信息
+interface AlbumWithCoverImages extends Album {
+  coverImages?: AlbumImage[];
+}
+
 const Container = styled.div`
-  padding: 100px 20px 20px;
+  padding: 60px 20px 20px;
   max-width: 1200px;
   margin: 0 auto;
-  min-height: calc(100vh - 100px);
+  min-height: calc(100vh - 60px);
+  background-color: #ffffff;
+  color: #333;
 `;
 
-const Header = styled.div`
+const PageHeader = styled.div`
   text-align: center;
   margin-bottom: 40px;
 `;
 
-const HeaderIcon = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 80px;
-  height: 80px;
-  background: linear-gradient(135deg, #ff69b4, #ff8a80);
-  border-radius: 50%;
-  margin: 0 auto 20px;
-  color: white;
-  font-size: 2.5rem;
-  box-shadow: 0 10px 25px rgba(255, 105, 180, 0.3);
-`;
-
-const Title = styled.h1`
-  color: #d63384;
-  font-size: 2.5rem;
+const PageTitle = styled.h1`
+  font-size: 2.8rem;
   font-weight: 700;
-  margin: 0 0 10px;
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  background: linear-gradient(135deg, #d63384, #ff69b4);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #212529;
+  margin-bottom: 0.5rem;
 `;
 
-const Subtitle = styled.p`
-  color: #8e44ad;
+const PageSubtitle = styled.p`
   font-size: 1.1rem;
-  margin: 0;
-  opacity: 0.8;
+  color: #6c757d;
+  margin-bottom: 2rem;
 `;
 
 const AlbumsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 25px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 30px;
   margin-top: 30px;
 `;
 
-const CreateAlbumCard = styled(motion.div)`
-  background: linear-gradient(135deg, rgba(255, 105, 180, 0.1) 0%, rgba(255, 138, 128, 0.1) 100%);
-  border: 2px dashed rgba(255, 105, 180, 0.4);
-  border-radius: 20px;
-  padding: 40px 20px;
-  cursor: pointer;
+// 替换原来的CreateAlbumCard组件，改为悬浮按钮样式
+const FloatingActionButton = styled(motion.button)`
+  position: fixed;
+  right: 40px;
+  bottom: 40px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fd7e14, #ff5722);
+  border: none;
+  color: white;
+  font-size: 28px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  text-align: center;
-  transition: all 0.3s ease;
-  min-height: 320px;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(253, 126, 20, 0.4);
+  z-index: 1000;
+  transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
   
   &:hover {
-    transform: translateY(-5px);
-    border-color: rgba(255, 105, 180, 0.6);
-    background: linear-gradient(135deg, rgba(255, 105, 180, 0.15) 0%, rgba(255, 138, 128, 0.15) 100%);
-    box-shadow: 0 10px 25px rgba(255, 105, 180, 0.2);
+    background: linear-gradient(135deg, #ff5722, #fd7e14);
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 8px 25px rgba(253, 126, 20, 0.5);
+  }
+  
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(253, 126, 20, 0.3);
+  }
+  
+  &:active {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 4px 12px rgba(253, 126, 20, 0.3);
   }
 `;
 
 const CreateIcon = styled.div`
   font-size: 3rem;
-  color: #ff69b4;
+  color: #a29bfe;
   margin-bottom: 15px;
-  opacity: 0.8;
+  opacity: 0.9;
 `;
 
 const CreateText = styled.div`
-  color: #d63384;
+  color: #6c5ce7;
   font-size: 1.1rem;
   font-weight: 500;
 `;
@@ -109,19 +111,25 @@ const CreateText = styled.div`
 const EmptyState = styled.div`
   text-align: center;
   padding: 80px 20px;
-  color: #c39bd3;
+  color: #6c757d;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
 `;
 
 const EmptyIcon = styled.div`
-  font-size: 5rem;
-  margin-bottom: 25px;
-  opacity: 0.6;
+  font-size: 4rem;
+  margin-bottom: 20px;
+  opacity: 0.7;
+  color: #adb5bd;
 `;
 
 const EmptyTitle = styled.h3`
-  font-size: 1.5rem;
-  margin: 0 0 15px;
-  color: #8e44ad;
+  font-size: 1.4rem;
+  margin: 0 0 10px;
+  color: #343a40;
 `;
 
 const EmptyDescription = styled.p`
@@ -130,6 +138,7 @@ const EmptyDescription = styled.p`
   line-height: 1.6;
   max-width: 400px;
   margin: 0 auto;
+  color: #495057;
 `;
 
 const LoadingWrapper = styled.div`
@@ -137,24 +146,24 @@ const LoadingWrapper = styled.div`
   justify-content: center;
   align-items: center;
   height: 200px;
-  color: #ff69b4;
+  color: #fd7e14;
   font-size: 1.1rem;
 `;
 
 const ErrorMessage = styled.div`
-  background: linear-gradient(135deg, #ffebee, #fce4ec);
-  border: 1px solid rgba(244, 67, 54, 0.3);
+  background-color: rgba(255, 107, 107, 0.05);
+  border: 1px solid rgba(220, 53, 69, 0.2);
   border-radius: 12px;
-  padding: 20px;
+  padding: 15px 20px;
   margin: 20px 0;
-  color: #c62828;
+  color: #dc3545;
   text-align: center;
 `;
 
 const Gallery: React.FC = () => {
   const [pageState, setPageState] = useState<PageState>('list');
-  const [albums, setAlbums] = useState<Album[]>([]);
-  const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
+  const [albums, setAlbums] = useState<AlbumWithCoverImages[]>([]);
+  const [selectedAlbum, setSelectedAlbum] = useState<AlbumWithCoverImages | null>(null);
   const [albumImages, setAlbumImages] = useState<AlbumImage[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   
@@ -171,8 +180,24 @@ const Gallery: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const albumsData = await getAlbums();
-      setAlbums(albumsData);
+      const rawAlbums = await getAlbums();
+
+      // 为每个相册获取封面图片 (例如前5张)
+      const albumsWithCovers: AlbumWithCoverImages[] = await Promise.all(
+        rawAlbums.map(async (album) => {
+          try {
+            const images = await getAlbumImages(album.id);
+            return {
+              ...album,
+              coverImages: images.slice(0, 5), // 取前5张作为封面轮播图
+            };
+          } catch (imageError) {
+            console.error(`加载相册 ${album.id} 的图片失败:`, imageError);
+            return { ...album, coverImages: [] }; // 如果失败，则封面图片为空数组
+          }
+        })
+      );
+      setAlbums(albumsWithCovers);
     } catch (error) {
       console.error('加载相册列表失败:', error);
       setError('加载相册列表失败，请稍后重试');
@@ -215,7 +240,7 @@ const Gallery: React.FC = () => {
   };
 
   // 打开相册详情
-  const handleAlbumClick = async (album: Album) => {
+  const handleAlbumClick = async (album: AlbumWithCoverImages) => {
     setSelectedAlbum(album);
     setPageState('detail');
     await loadAlbumImages(album.id);
@@ -310,58 +335,48 @@ const Gallery: React.FC = () => {
   // 渲染相册列表页面
   const renderAlbumList = () => (
     <>
-      <Header>
-        <HeaderIcon>
-          {(FiHeart as any)()}
-        </HeaderIcon>
-        <Title>情侣相册回忆空间</Title>
-        <Subtitle>记录我们的美好时光，珍藏甜蜜回忆</Subtitle>
-      </Header>
+      <PageHeader>
+        <PageTitle>我们的照片墙</PageTitle>
+        <PageSubtitle>用影像定格每一刻，记录爱的故事</PageSubtitle>
+      </PageHeader>
 
       {error && <ErrorMessage>{error}</ErrorMessage>}
 
       {loading ? (
         <LoadingWrapper>加载中...</LoadingWrapper>
       ) : (
-        <AlbumsGrid>
-          {/* 新建相册卡片 */}
-          <CreateAlbumCard
+        <>
+          {albums.length > 0 ? (
+            <AlbumsGrid>
+              {albums.map((album, index) => (
+                <AlbumCard
+                  key={album.id}
+                  album={album}
+                  onClick={() => handleAlbumClick(album)}
+                />
+              ))}
+            </AlbumsGrid>
+          ) : (
+            <EmptyState>
+              <EmptyIcon>
+                {(FiImage as any)()}
+              </EmptyIcon>
+              <EmptyTitle>还没有相册回忆</EmptyTitle>
+              <EmptyDescription>
+                点击右下角的 "+" 按钮，开始创建您的第一本数字回忆录吧！
+              </EmptyDescription>
+            </EmptyState>
+          )}
+          
+          <FloatingActionButton
             onClick={() => setShowCreateModal(true)}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: "spring", stiffness: 260, damping: 20 }}
           >
-            <CreateIcon>
-              {(FiPlus as any)()}
-            </CreateIcon>
-            <CreateText>新建相册</CreateText>
-          </CreateAlbumCard>
-
-          {/* 相册卡片列表 */}
-          {albums.map((album, index) => (
-            <AlbumCard
-              key={album.id}
-              album={album}
-              onClick={() => handleAlbumClick(album)}
-            />
-          ))}
-        </AlbumsGrid>
-      )}
-
-      {/* 空状态 */}
-      {!loading && albums.length === 0 && (
-        <EmptyState>
-          <EmptyIcon>
-            {(FiCamera as any)()}
-          </EmptyIcon>
-          <EmptyTitle>还没有相册</EmptyTitle>
-          <EmptyDescription>
-            点击"新建相册"按钮，开始创建你们的第一本回忆相册吧！
-            记录每一个美好瞬间，让爱情故事永远闪闪发光。
-          </EmptyDescription>
-        </EmptyState>
+            {(FiPlus as any)()}
+          </FloatingActionButton>
+        </>
       )}
     </>
   );
