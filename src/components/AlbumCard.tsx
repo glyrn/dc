@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
 import { FiCalendar, FiHeart, FiImage } from 'react-icons/fi';
 import { Album, AlbumImage } from '../services/albumService';
 
@@ -13,7 +12,7 @@ interface AlbumCardProps {
   onClick: () => void;
 }
 
-const CardWrapper = styled(motion.div)`
+const CardWrapper = styled.div`
   background-color: #ffffff;
   border-radius: 16px;
   overflow: hidden;
@@ -39,13 +38,19 @@ const CoverArea = styled.div`
   overflow: hidden;
 `;
 
-const CarouselImage = styled(motion.img)`
+const CarouselImage = styled.img`
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.7s ease-in-out;
+  
+  &.active {
+    opacity: 1;
+  }
 `;
 
 const PlaceholderIconWrapper = styled.div`
@@ -136,44 +141,62 @@ const formatDate = (dateString: string): string => {
 
 const AlbumCard: React.FC<AlbumCardProps> = ({ album, onClick }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isInView, setIsInView] = useState(false);
   const coverImages = album.coverImages || [];
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
+  // 使用IntersectionObserver实现懒加载
   useEffect(() => {
-    if (coverImages.length > 1) {
-      const intervalId = setInterval(() => {
-        setCurrentImageIndex((prevIndex) => (prevIndex + 1) % coverImages.length);
-      }, 3000);
-
-      return () => clearInterval(intervalId);
+    if (cardRef.current) {
+      observerRef.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+          setIsInView(true);
+          observerRef.current?.disconnect();
+        }
+      }, { threshold: 0.1 });
+      
+      observerRef.current.observe(cardRef.current);
     }
-  }, [coverImages, coverImages.length]);
+    
+    return () => {
+      observerRef.current?.disconnect();
+    };
+  }, []);
+
+  // 轮播逻辑，只有在视图中才激活
+  useEffect(() => {
+    if (!isInView || coverImages.length <= 1) return;
+    
+    const intervalId = setInterval(() => {
+      setCurrentImageIndex((prevIndex) => (prevIndex + 1) % coverImages.length);
+    }, 3000);
+
+    return () => clearInterval(intervalId);
+  }, [coverImages.length, isInView]);
 
   return (
     <CardWrapper
       onClick={onClick}
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
+      ref={cardRef}
     >
       <CoverArea>
-        <AnimatePresence initial={false} mode="wait">
-          {coverImages.length > 0 ? (
+        {coverImages.length > 0 ? (
+          coverImages.map((image, index) => (
             <CarouselImage
-              key={coverImages[currentImageIndex]?.url ? `${coverImages[currentImageIndex]?.url}-${currentImageIndex}` : `image-${currentImageIndex}`}
-              src={coverImages[currentImageIndex]?.url}
-              alt={`${album.name} cover ${currentImageIndex + 1}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.7, ease: "easeInOut" }}
+              key={`${image.url}-${index}`}
+              src={isInView ? image.url : ''}
+              alt={`${album.name} cover ${index + 1}`}
+              className={index === currentImageIndex ? 'active' : ''}
+              loading="lazy"
             />
-          ) : (
-            <PlaceholderIconWrapper key="placeholder">
-              {(FiImage as any)()}
-              <PlaceholderText>暂无图片</PlaceholderText>
-            </PlaceholderIconWrapper>
-          )}
-        </AnimatePresence>
+          ))
+        ) : (
+          <PlaceholderIconWrapper>
+            {FiImage({ size: 48 })}
+            <PlaceholderText>暂无图片</PlaceholderText>
+          </PlaceholderIconWrapper>
+        )}
       </CoverArea>
       
       <AlbumInfo>
@@ -187,11 +210,11 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, onClick }) => {
         )}
         <AlbumMeta>
           <MetaItem>
-            {(FiCalendar as any)({ size: 14 })}
+            {FiCalendar({ size: 14 })}
             <span>{formatDate(album.created_at)}</span>
           </MetaItem>
           <HeartIconWrapper>
-            {(FiHeart as any)({ size: 18 })}
+            {FiHeart({ size: 18 })}
           </HeartIconWrapper>
         </AlbumMeta>
       </AlbumInfo>

@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
 import { FiPlus, FiImage } from 'react-icons/fi';
 import AlbumCard from '../components/AlbumCard';
 import CreateAlbumModal from '../components/CreateAlbumModal';
 import AlbumDetail from '../components/AlbumDetail';
-import imageCompression from 'browser-image-compression';
 import { 
   getAlbums, 
   createAlbum, 
@@ -15,6 +13,7 @@ import {
   AlbumImage, 
   CreateAlbumRequest 
 } from '../services/albumService';
+import { compressImage, defaultCompressionOptions } from '../utils/imageUtils';
 
 // 页面状态类型
 type PageState = 'list' | 'detail';
@@ -59,7 +58,7 @@ const AlbumsGrid = styled.div`
 `;
 
 // 替换原来的CreateAlbumCard组件，改为悬浮按钮样式
-const FloatingActionButton = styled(motion.button)`
+const FloatingActionButton = styled.button`
   position: fixed;
   right: 40px;
   bottom: 40px;
@@ -160,6 +159,17 @@ const ErrorMessage = styled.div`
   text-align: center;
 `;
 
+// 显示动画的包装器组件，只在首次渲染时应用淡入效果
+const FadeIn = styled.div`
+  opacity: 0;
+  animation: fadeIn 0.5s ease-out forwards;
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+`;
+
 const Gallery: React.FC = () => {
   const [pageState, setPageState] = useState<PageState>('list');
   const [albums, setAlbums] = useState<AlbumWithCoverImages[]>([]);
@@ -182,14 +192,14 @@ const Gallery: React.FC = () => {
       setError(null);
       const rawAlbums = await getAlbums();
 
-      // 为每个相册获取封面图片 (例如前5张)
+      // 为每个相册获取封面图片 (例如前3张)
       const albumsWithCovers: AlbumWithCoverImages[] = await Promise.all(
         rawAlbums.map(async (album) => {
           try {
             const images = await getAlbumImages(album.id);
             return {
               ...album,
-              coverImages: images.slice(0, 5), // 取前5张作为封面轮播图
+              coverImages: images.slice(0, 3), // 减少封面图片数量，只取前3张
             };
           } catch (imageError) {
             console.error(`加载相册 ${album.id} 的图片失败:`, imageError);
@@ -251,194 +261,144 @@ const Gallery: React.FC = () => {
     setPageState('list');
     setSelectedAlbum(null);
     setAlbumImages([]);
-    setError(null);
   };
 
-  // 上传图片
+  // 上传图片到相册
   const handleUploadImages = async (files: FileList) => {
-    if (!selectedAlbum) return;
-
     try {
       setUploading(true);
       setError(null);
-
-      const processedFiles: File[] = [];
-      for (const file of Array.from(files)) {
-        if (!file.type.startsWith('image/')) {
-          console.warn(`文件 ${file.name} 不是图片，已跳过压缩处理。`);
-          // 决定是否依然上传非图片文件，或提示用户
-          // processedFiles.push(file); // 如果仍要上传
-          continue; // 这里选择跳过非图片文件
-        }
-
-        try {
-          const options = {
-            maxSizeMB: 0.1, // 目标最大 100KB
-            maxWidthOrHeight: 1920, // 可选：限制图片最大尺寸，保持纵横比
-            useWebWorker: true,
-            fileType: 'image/webp', // 转换为 WebP
-            initialQuality: 0.75, // 初始压缩质量，可以调整
-            // webPModule: () => import('webp-converter-browser'), // 如果需要特定 WebP 模块
-          };
-          console.log(`正在压缩图片: ${file.name}`);
-          const compressedBlob = await imageCompression(file, options);
-          // 使用原始文件名（或生成新文件名），但扩展名更改为 .webp
-          const newFileName = file.name.substring(0, file.name.lastIndexOf('.')) + '.webp';
-          const compressedFile = new File([compressedBlob], newFileName, {
-            type: 'image/webp',
-            lastModified: Date.now(),
-          });
-          console.log(`图片压缩完成: ${compressedFile.name}, 大小: ${(compressedFile.size / 1024).toFixed(2)} KB`);
-          processedFiles.push(compressedFile);
-        } catch (compressionError) {
-          console.error(`图片 ${file.name} 压缩失败:`, compressionError);
-          setError(`图片 ${file.name} 压缩失败，将尝试上传原图。`);
-          // 压缩失败，可以选择上传原图或不上传
-          processedFiles.push(file); 
-        }
-      }
-
-      if (processedFiles.length === 0) {
-        setUploading(false);
-        // 可以设置一个消息提示用户没有有效图片被处理
-        setError("没有有效的图片被选中或处理成功。");
-        return;
+      
+      if (!selectedAlbum) {
+        throw new Error('未选择相册');
       }
       
-      const uploadPromises = processedFiles.map(processedFile => 
-        uploadImageToAlbum(selectedAlbum.id, processedFile)
-      );
+      // 显示上传进度信息
+      console.log(`开始上传 ${files.length} 张图片到相册 "${selectedAlbum.name}"...`);
+      
+      // 将FileList转换为数组
+      const fileArray = Array.from(files);
 
-      const uploadedImageResults = await Promise.all(uploadPromises);
-      // 假设 uploadImageToAlbum 返回的是 AlbumImage 类型或者包含其必要信息
-      // 如果返回的不是完整的 AlbumImage，可能需要调整这里的逻辑
-      // 或者在 uploadImageToAlbum 内部处理好返回的结构
-      setAlbumImages(prev => [...uploadedImageResults, ...prev]);
+      // 对每个文件进行压缩和上传
+      const uploadPromises = fileArray.map(async (file: File, index) => {
+        try {
+          // 使用工具函数压缩图片
+          const compressedFile = await compressImage(file, defaultCompressionOptions);
+          
+          // 上传压缩后的图片
+          return await uploadImageToAlbum(selectedAlbum.id, compressedFile);
+        } catch (error) {
+          console.error(`压缩或上传图片 ${file.name} 失败:`, error);
+          throw error;
+        }
+      });
+
+      // 等待所有上传完成
+      const results = await Promise.allSettled(uploadPromises);
+      
+      // 检查结果
+      const successfulUploads = results.filter(result => result.status === 'fulfilled');
+      console.log(`成功上传 ${successfulUploads.length}/${files.length} 张图片`);
+      
+      // 如果有成功上传的图片，刷新相册图片列表
+      if (successfulUploads.length > 0 && selectedAlbum) {
+        await loadAlbumImages(selectedAlbum.id);
+      }
+      
+      // 如果部分图片上传失败，显示警告
+      if (successfulUploads.length < files.length) {
+        setError(`部分图片上传失败，成功上传 ${successfulUploads.length}/${files.length} 张图片`);
+      }
     } catch (error) {
       console.error('上传图片失败:', error);
-      // 更具体的错误信息
-      if (error instanceof Error) {
-        setError(`上传图片失败: ${error.message}`);
-      } else {
-        setError('上传图片失败，请稍后重试');
-      }
+      setError('上传图片失败，请稍后重试');
     } finally {
       setUploading(false);
     }
   };
 
-  // 组件挂载时加载数据
+  // 初始化加载相册列表
   useEffect(() => {
     loadAlbums();
   }, []);
 
-  // 渲染相册列表页面
+  // 渲染相册列表
   const renderAlbumList = () => (
-    <>
-      {/* <PageHeader>
-        <PageTitle>我们的照片墙</PageTitle>
-        <PageSubtitle>用影像定格每一刻，记录爱的故事</PageSubtitle>
-      </PageHeader> */}
-
+    <FadeIn>
+      <PageHeader>
+        <PageTitle>我的相册</PageTitle>
+        <PageSubtitle>记录每一个值得珍藏的瞬间</PageSubtitle>
+      </PageHeader>
+      
       {error && <ErrorMessage>{error}</ErrorMessage>}
-
+      
       {loading ? (
-        <LoadingWrapper>加载中...</LoadingWrapper>
+        <LoadingWrapper>
+          <span>加载中...</span>
+        </LoadingWrapper>
+      ) : albums.length > 0 ? (
+        <AlbumsGrid>
+          {albums.map((album) => (
+            <AlbumCard
+              key={album.id}
+              album={album}
+              onClick={() => handleAlbumClick(album)}
+            />
+          ))}
+        </AlbumsGrid>
       ) : (
-        <>
-          {albums.length > 0 ? (
-            <AlbumsGrid>
-              {albums.map((album, index) => (
-                <AlbumCard
-                  key={album.id}
-                  album={album}
-                  onClick={() => handleAlbumClick(album)}
-                />
-              ))}
-            </AlbumsGrid>
-          ) : (
-            <EmptyState>
-              <EmptyIcon>
-                {(FiImage as any)()}
-              </EmptyIcon>
-              <EmptyTitle>还没有相册回忆</EmptyTitle>
-              <EmptyDescription>
-                点击右下角的 "+" 按钮，开始创建您的第一本数字回忆录吧！
-              </EmptyDescription>
-            </EmptyState>
-          )}
-          
-          <FloatingActionButton
-            onClick={() => setShowCreateModal(true)}
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: "spring", stiffness: 260, damping: 20 }}
-          >
-            {(FiPlus as any)()}
-          </FloatingActionButton>
-        </>
+        <EmptyState>
+          <EmptyIcon>
+            {FiImage({})}
+          </EmptyIcon>
+          <EmptyTitle>还没有相册</EmptyTitle>
+          <EmptyDescription>
+            创建您的第一个相册，开始收集珍贵的照片和回忆吧！
+          </EmptyDescription>
+        </EmptyState>
       )}
-    </>
+      
+      <FloatingActionButton onClick={() => setShowCreateModal(true)}>
+        {FiPlus({})}
+      </FloatingActionButton>
+      
+      {showCreateModal && (
+        <CreateAlbumModal
+          onClose={() => setShowCreateModal(false)}
+          onCreate={handleCreateAlbum}
+          isCreating={creating}
+        />
+      )}
+    </FadeIn>
   );
 
-  // 渲染相册详情页面
   const renderAlbumDetail = () => {
     if (!selectedAlbum) return null;
-
-    if (loadingImages) {
-      return <LoadingWrapper>加载相册内容中...</LoadingWrapper>;
-    }
-
+    
     return (
-      <AlbumDetail
-        album={selectedAlbum}
-        images={albumImages}
-        onBack={handleBackToList}
-        onUpload={handleUploadImages}
-        uploading={uploading}
-      />
+      <FadeIn>
+        {error && <ErrorMessage>{error}</ErrorMessage>}
+        
+        {loadingImages ? (
+          <LoadingWrapper>
+            <span>加载图片中...</span>
+          </LoadingWrapper>
+        ) : (
+          <AlbumDetail
+            album={selectedAlbum}
+            images={albumImages}
+            onBack={handleBackToList}
+            onUpload={handleUploadImages}
+            uploading={uploading}
+          />
+        )}
+      </FadeIn>
     );
   };
 
   return (
     <Container>
-      <AnimatePresence mode="wait">
-        {pageState === 'list' ? (
-          <motion.div
-            key="list"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            {renderAlbumList()}
-          </motion.div>
-        ) : (
-          <motion.div
-            key="detail"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.3 }}
-          >
-            {renderAlbumDetail()}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* 创建相册模态框 */}
-      <CreateAlbumModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onSubmit={handleCreateAlbum}
-        loading={creating}
-      />
-
-      {error && (
-        <ErrorMessage>
-          {error}
-        </ErrorMessage>
-      )}
+      {pageState === 'list' ? renderAlbumList() : renderAlbumDetail()}
     </Container>
   );
 };

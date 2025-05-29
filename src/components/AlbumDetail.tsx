@@ -1,6 +1,5 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
 import { FiArrowLeft, FiUpload, FiX, FiChevronLeft, FiChevronRight, FiImage } from 'react-icons/fi';
 import { Album, AlbumImage } from '../services/albumService';
 
@@ -36,7 +35,7 @@ const HeaderLeft = styled.div`
   gap: 15px;
 `;
 
-const BackButton = styled(motion.button)`
+const BackButton = styled.button`
   background: linear-gradient(135deg, #007bff, #0056b3);
   color: white;
   border: none;
@@ -65,7 +64,7 @@ const AlbumTitle = styled.h1`
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
 `;
 
-const UploadButton = styled(motion.label)`
+const UploadButton = styled.label`
   background: linear-gradient(135deg, #007bff, #0056b3); // 蓝色系上传按钮
   color: white;
   border: none;
@@ -106,7 +105,7 @@ const PhotoGrid = styled.div`
   margin-top: 20px;
 `;
 
-const PhotoCard = styled(motion.div)`
+const PhotoCard = styled.div`
   background-color: #ffffff;
   border-radius: 12px;
   overflow: hidden;
@@ -168,18 +167,24 @@ const EmptyText = styled.p`
 `;
 
 // 大图查看模态框
-const ImageModal = styled(motion.div)`
+interface ModalProps {
+  visible: boolean;
+}
+
+const ImageModal = styled.div<ModalProps>`
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.9);
-  display: flex;
+  display: ${props => props.visible ? 'flex' : 'none'};
   justify-content: center;
   align-items: center;
   z-index: 1000;
   padding: 20px;
+  transition: opacity 0.3s ease;
+  opacity: ${props => props.visible ? 1 : 0};
 `;
 
 const ModalImage = styled.img`
@@ -211,10 +216,14 @@ const CloseModalButton = styled.button`
   }
 `;
 
-const NavButton = styled.button<{ $direction: 'left' | 'right' }>`
+interface NavButtonProps {
+  direction: 'left' | 'right';
+}
+
+const NavButton = styled.button<NavButtonProps>`
   position: absolute;
   top: 50%;
-  ${props => props.$direction}: 20px;
+  ${props => props.direction === 'left' ? 'left: 20px;' : 'right: 20px;'}
   transform: translateY(-50%);
   background: rgba(255, 255, 255, 0.2);
   border: none;
@@ -239,6 +248,101 @@ const NavButton = styled.button<{ $direction: 'left' | 'right' }>`
   }
 `;
 
+interface LazyImageProps {
+  src: string;
+  alt: string;
+  onClick: () => void;
+}
+
+// 添加图片错误处理和懒加载功能
+const LazyImage: React.FC<LazyImageProps> = ({ src, alt, onClick }) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  useEffect(() => {
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          const img = imgRef.current;
+          if (img && !img.src) {
+            img.src = src;
+          }
+          observerRef.current?.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (imgRef.current) {
+      observerRef.current.observe(imgRef.current);
+    }
+
+    return () => {
+      observerRef.current?.disconnect();
+    };
+  }, [src]);
+
+  const handleLoad = () => {
+    setIsLoaded(true);
+  };
+
+  const handleError = () => {
+    setHasError(true);
+  };
+
+  return (
+    <PhotoWrapper>
+      {!isLoaded && !hasError && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#f5f5f5'
+        }}>
+          {FiImage({ size: 24, color: "#adb5bd" })}
+        </div>
+      )}
+
+      {hasError && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          backgroundColor: '#f8d7da',
+          padding: '10px'
+        }}>
+          {FiX({ size: 24, color: "#dc3545" })}
+          <p style={{ fontSize: '12px', marginTop: '8px', color: '#842029', textAlign: 'center' }}>
+            加载失败
+          </p>
+        </div>
+      )}
+
+      <Photo
+        ref={imgRef}
+        alt={alt}
+        onClick={onClick}
+        onLoad={handleLoad}
+        onError={handleError}
+        style={{ display: hasError ? 'none' : 'block' }}
+      />
+    </PhotoWrapper>
+  );
+};
+
 const AlbumDetail: React.FC<AlbumDetailProps> = ({ 
   album, 
   images, 
@@ -247,174 +351,123 @@ const AlbumDetail: React.FC<AlbumDetailProps> = ({
   uploading 
 }) => {
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+  const [showModal, setShowModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      onUpload(files);
-    }
-    // 清空输入，允许重复选择同一文件
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+    if (e.target.files && e.target.files.length > 0) {
+      onUpload(e.target.files);
     }
   };
 
   const handleImageClick = (index: number) => {
     setSelectedImageIndex(index);
+    setShowModal(true);
   };
 
   const closeModal = () => {
-    setSelectedImageIndex(null);
+    setShowModal(false);
   };
 
-  const navigateImage = useCallback((direction: 'prev' | 'next') => {
-    setSelectedImageIndex(prev => {
-      if (prev === null) return null;
-      
-      if (direction === 'prev') {
-        return prev > 0 ? prev - 1 : images.length - 1;
-      } else {
-        return prev < images.length - 1 ? prev + 1 : 0;
-      }
-    });
-  }, [images.length]);
-
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    switch (e.key) {
-      case 'ArrowLeft':
-        navigateImage('prev');
-        break;
-      case 'ArrowRight':
-        navigateImage('next');
-        break;
-      case 'Escape':
-        closeModal();
-        break;
+  const navigateImage = (direction: 'prev' | 'next') => {
+    if (!images || images.length === 0) return;
+    
+    let newIndex;
+    if (direction === 'next') {
+      newIndex = (selectedImageIndex! + 1) % images.length;
+    } else {
+      newIndex = (selectedImageIndex! - 1 + images.length) % images.length;
     }
-  }, [navigateImage]);
+    
+    setSelectedImageIndex(newIndex);
+  };
 
-  React.useEffect(() => {
-    if (selectedImageIndex !== null) {
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
+  // 当模态框隐藏后，延迟释放selectedImageIndex
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (!showModal) {
+      timer = setTimeout(() => {
+        setSelectedImageIndex(null);
+      }, 300);
     }
-  }, [selectedImageIndex, handleKeyDown]);
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [showModal]);
 
   return (
     <Container>
       <Header>
         <HeaderLeft>
-          <BackButton
-            onClick={onBack}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            {(FiArrowLeft as any)()}
+          <BackButton onClick={onBack}>
+            {FiArrowLeft({ style: { marginRight: '8px' } })} 返回
           </BackButton>
           <AlbumTitle>{album.name}</AlbumTitle>
         </HeaderLeft>
         
-        <UploadButton
-          as="label"
-          aria-disabled={uploading}
-          whileHover={{ scale: uploading ? 1 : 1.05 }}
-          whileTap={{ scale: uploading ? 1 : 0.95 }}
-        >
-          {(FiUpload as any)()}
-          {uploading ? '上传中...' : '添加照片'}
+        <UploadButton aria-disabled={uploading}>
+          {FiUpload({})}
+          <span>{uploading ? '上传中...' : '上传图片'}</span>
           <HiddenInput
-            ref={fileInputRef}
             type="file"
-            multiple
             accept="image/*"
+            multiple
             onChange={handleFileSelect}
             disabled={uploading}
+            ref={fileInputRef}
           />
         </UploadButton>
       </Header>
-
-      {images.length > 0 ? (
+      
+      {images.length === 0 ? (
+        <EmptyState>
+          <EmptyIcon>
+            {FiImage({})}
+          </EmptyIcon>
+          <EmptyText>这个相册还没有图片，点击"上传图片"按钮添加您的第一张照片吧！</EmptyText>
+        </EmptyState>
+      ) : (
         <PhotoGrid>
           {images.map((image, index) => (
-            <PhotoCard
-              key={`${image.url}-${index}`}
-              onClick={() => handleImageClick(index)}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <PhotoWrapper>
-                <Photo
-                  src={image.url}
-                  alt={image.filename}
-                  loading="lazy"
-                />
-              </PhotoWrapper>
+            <PhotoCard key={image.url}>
+              <LazyImage
+                src={image.url}
+                alt={image.filename || '照片'}
+                onClick={() => handleImageClick(index)}
+              />
             </PhotoCard>
           ))}
         </PhotoGrid>
-      ) : (
-        <EmptyState>
-          <EmptyIcon>
-            {(FiImage as any)()}
-          </EmptyIcon>
-          <EmptyText>
-            这个相册还没有照片<br />
-            点击"添加照片"按钮开始记录美好回忆吧！
-          </EmptyText>
-        </EmptyState>
       )}
-
-      {/* 大图查看模态框 */}
-      <AnimatePresence>
-        {selectedImageIndex !== null && (
-          <ImageModal
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={closeModal}
+      
+      {selectedImageIndex !== null && (
+        <ImageModal visible={showModal}>
+          <CloseModalButton onClick={closeModal}>
+            {FiX({})}
+          </CloseModalButton>
+          
+          <NavButton
+            direction="left"
+            onClick={() => navigateImage('prev')}
+            disabled={images.length <= 1}
           >
-            <CloseModalButton onClick={closeModal}>
-              {(FiX as any)()}
-            </CloseModalButton>
-            
-            {images.length > 1 && (
-              <>
-                <NavButton
-                  $direction="left"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigateImage('prev');
-                  }}
-                  disabled={images.length <= 1}
-                >
-                  {(FiChevronLeft as any)()}
-                </NavButton>
-                
-                <NavButton
-                  $direction="right"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigateImage('next');
-                  }}
-                  disabled={images.length <= 1}
-                >
-                  {(FiChevronRight as any)()}
-                </NavButton>
-              </>
-            )}
-            
-            <ModalImage
-              src={images[selectedImageIndex].url}
-              alt={images[selectedImageIndex].filename}
-              onClick={(e) => e.stopPropagation()}
-            />
-          </ImageModal>
-        )}
-      </AnimatePresence>
+            {FiChevronLeft({})}
+          </NavButton>
+          
+          <ModalImage
+            src={images[selectedImageIndex]?.url}
+            alt={images[selectedImageIndex]?.filename || '照片'}
+          />
+          
+          <NavButton
+            direction="right"
+            onClick={() => navigateImage('next')}
+            disabled={images.length <= 1}
+          >
+            {FiChevronRight({})}
+          </NavButton>
+        </ImageModal>
+      )}
     </Container>
   );
 };

@@ -1,16 +1,14 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
 import { FiX, FiPlusSquare, FiType, FiFileText } from 'react-icons/fi';
 
 interface CreateAlbumModalProps {
-  isOpen: boolean;
   onClose: () => void;
-  onSubmit: (name: string, description?: string) => void;
-  loading?: boolean;
+  onCreate: (name: string, description?: string) => void | Promise<void>;
+  isCreating: boolean;
 }
 
-const ModalOverlay = styled(motion.div)`
+const ModalOverlay = styled.div`
   position: fixed;
   top: 0;
   left: 0;
@@ -22,9 +20,15 @@ const ModalOverlay = styled(motion.div)`
   align-items: center;
   z-index: 1000;
   padding: 20px;
+  animation: fadeIn 0.2s ease-out forwards;
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
 `;
 
-const ModalContent = styled(motion.div)`
+const ModalContent = styled.div`
   background-color: #ffffff;
   border-radius: 16px;
   padding: 30px 35px;
@@ -32,6 +36,12 @@ const ModalContent = styled(motion.div)`
   max-width: 480px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   position: relative;
+  animation: slideUp 0.3s ease-out forwards;
+
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
 `;
 
 const CloseButton = styled.button`
@@ -140,7 +150,11 @@ const ButtonGroup = styled.div`
   justify-content: flex-end;
 `;
 
-const Button = styled(motion.button)<{ $variant?: 'primary' | 'secondary' }>`
+interface ButtonProps {
+  variant?: 'primary' | 'secondary';
+}
+
+const Button = styled.button<ButtonProps>`
   padding: 10px 20px;
   border: none;
   border-radius: 8px;
@@ -150,7 +164,7 @@ const Button = styled(motion.button)<{ $variant?: 'primary' | 'secondary' }>`
   transition: background-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.1s ease;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   
-  ${props => props.$variant === 'primary' ? `
+  ${props => props.variant === 'primary' ? `
     background-color: #007bff;
     color: white;
     
@@ -194,10 +208,9 @@ const LoadingSpinner = styled.div`
 `;
 
 const CreateAlbumModal: React.FC<CreateAlbumModalProps> = ({ 
-  isOpen, 
   onClose, 
-  onSubmit, 
-  loading = false 
+  onCreate, 
+  isCreating 
 }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -205,116 +218,74 @@ const CreateAlbumModal: React.FC<CreateAlbumModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim()) {
-      onSubmit(name.trim(), description.trim() || undefined);
+      onCreate(name.trim(), description.trim() || undefined);
     }
-  };
-
-  const handleClose = () => {
-    if (!loading) {
-      setName('');
-      setDescription('');
-      onClose();
-    }
-  };
-
-  const modalVariants = {
-    hidden: { opacity: 0, scale: 0.8 },
-    visible: { opacity: 1, scale: 1 },
-    exit: { opacity: 0, scale: 0.8 }
-  };
-
-  const overlayVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1 },
-    exit: { opacity: 0 }
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <ModalOverlay
-          variants={overlayVariants}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          onClick={handleClose}
-        >
-          <ModalContent
-            variants={modalVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <CloseButton onClick={handleClose} disabled={loading}>
-              {(FiX as any)()}
-            </CloseButton>
-            
-            <ModalHeader>
-              <ModalTitle>
-                创建新相册
-              </ModalTitle>
-            </ModalHeader>
-
-            <Form onSubmit={handleSubmit}>
-              <InputGroup>
-                <Label htmlFor="albumName">
-                  {(FiType as any)({ size: 16, style: { marginRight: '4px' } })}
-                  相册名称
-                </Label>
-                <Input
-                  id="albumName"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="给这本相册起个温馨的名字..."
-                  maxLength={50}
-                  required
-                  disabled={loading}
-                />
-              </InputGroup>
-
-              <InputGroup>
-                <Label htmlFor="albumDescription">
-                  {(FiFileText as any)({ size: 16, style: { marginRight: '4px' } })}
-                  相册描述（可选）
-                </Label>
-                <TextArea
-                  id="albumDescription"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="记录下这本相册的特殊意义..."
-                  maxLength={200}
-                  disabled={loading}
-                />
-              </InputGroup>
-
-              <ButtonGroup>
-                <Button
-                  type="button"
-                  $variant="secondary"
-                  onClick={handleClose}
-                  disabled={loading}
-                >
-                  取消
-                </Button>
-                <Button
-                  type="submit"
-                  $variant="primary"
-                  disabled={!name.trim() || loading}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  {loading && <LoadingSpinner />}
-                  {loading ? '创建中...' : '创建相册'}
-                </Button>
-              </ButtonGroup>
-            </Form>
-          </ModalContent>
-        </ModalOverlay>
-      )}
-    </AnimatePresence>
+    <ModalOverlay onClick={onClose}>
+      <ModalContent onClick={e => e.stopPropagation()}>
+        <CloseButton onClick={onClose}>
+          {FiX({})}
+        </CloseButton>
+        
+        <ModalHeader>
+          <ModalTitle>创建新相册</ModalTitle>
+        </ModalHeader>
+        
+        <Form onSubmit={handleSubmit}>
+          <InputGroup>
+            <Label htmlFor="album-name">
+              {FiType({})} 相册名称
+            </Label>
+            <Input
+              id="album-name"
+              type="text"
+              placeholder="给相册起个名字吧..."
+              value={name}
+              onChange={e => setName(e.target.value)}
+              required
+              autoFocus
+            />
+          </InputGroup>
+          
+          <InputGroup>
+            <Label htmlFor="album-description">
+              {FiFileText({})} 相册描述（可选）
+            </Label>
+            <TextArea
+              id="album-description"
+              placeholder="写下这个相册的简介..."
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              maxLength={200}
+            />
+          </InputGroup>
+          
+          <ButtonGroup>
+            <Button 
+              type="button" 
+              onClick={onClose}
+            >
+              取消
+            </Button>
+            <Button 
+              type="submit" 
+              variant="primary" 
+              disabled={isCreating || !name.trim()}
+            >
+              {isCreating && <LoadingSpinner />}
+              {isCreating ? '创建中...' : (
+                <>
+                  {FiPlusSquare({ style: { marginRight: '8px' } })}
+                  创建相册
+                </>
+              )}
+            </Button>
+          </ButtonGroup>
+        </Form>
+      </ModalContent>
+    </ModalOverlay>
   );
 };
 
