@@ -325,11 +325,6 @@ const Gallery: React.FC = () => {
   // 渲染相册列表
   const renderAlbumList = () => (
     <FadeIn>
-      <PageHeader>
-        <PageTitle>我的相册</PageTitle>
-        <PageSubtitle>记录每一个值得珍藏的瞬间</PageSubtitle>
-      </PageHeader>
-      
       {error && <ErrorMessage>{error}</ErrorMessage>}
       
       {loading ? (
