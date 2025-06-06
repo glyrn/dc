@@ -116,7 +116,7 @@ const TimelineItem = styled.div`
   /* 左侧内容样式 */
   &:nth-child(odd) {
     left: 0;
-    text-align: right;
+    text-align: left;
 
     /* 增强的时间点圆圈 */
     &::before {
@@ -249,6 +249,7 @@ const TimelineDate = styled.div`
   box-shadow: 0 4px 10px rgba(108, 92, 231, 0.25);
   letter-spacing: 0.5px;
   transition: all 0.3s ease;
+  float: left; // 添加左浮动使日期显示在左侧
   
   /* 日期悬停效果 */
   ${TimelineItemCard}:hover & {
@@ -272,6 +273,7 @@ const TimelineTitle = styled.h3`
   font-weight: 700;
   line-height: 1.3;
   transition: color 0.3s ease;
+  clear: both; // 清除浮动，确保标题显示在日期下方
   
   ${TimelineItemCard}:hover & {
     color: var(--accent-color, #6c5ce7);
@@ -289,6 +291,9 @@ const TimelineDescription = styled.p`
   color: #555;
   line-height: 1.8;
   margin-bottom: 5px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  text-align: left; // 确保文本左对齐
 
   @media (max-width: 768px) {
     font-size: 0.95em;
