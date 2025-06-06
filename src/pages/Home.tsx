@@ -1,8 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { motion, useAnimation } from 'framer-motion';
-import PhotoGrid from '../components/PhotoGrid';
 import Typewriter from '../components/Typewriter';
+import Gallery from './Gallery';
 
 const HomeContainer = styled.div`
   overflow-x: hidden;
@@ -56,48 +56,6 @@ const HeroSubtitle = styled(motion.h2)`
   }
 `;
 
-const Section = styled.section`
-  padding: 100px 0;
-  background-color: var(--primary-color);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  
-  @media (max-width: 768px) {
-    padding: 70px 0;
-  }
-`;
-
-const SectionTitle = styled.h2`
-  font-size: 48px;
-  line-height: 1.08349;
-  font-weight: 600;
-  letter-spacing: -0.003em;
-  text-align: center;
-  margin-bottom: 1rem;
-  
-  @media (max-width: 768px) {
-    font-size: 36px;
-  }
-`;
-
-const SectionSubtitle = styled.h3`
-  font-size: 24px;
-  line-height: 1.16667;
-  font-weight: 400;
-  letter-spacing: 0.009em;
-  text-align: center;
-  margin-bottom: 3rem;
-  color: var(--gray-text);
-  max-width: 700px;
-  margin-left: auto;
-  margin-right: auto;
-  
-  @media (max-width: 768px) {
-    font-size: 19px;
-  }
-`;
-
 const ChevronDown = styled(motion.div)`
   position: absolute;
   bottom: 40px;
@@ -125,24 +83,133 @@ const ChevronDown = styled(motion.div)`
   }
 `;
 
+// 包装Gallery组件的容器
+const GallerySection = styled.section`
+  padding-top: 40px;
+  background-color: var(--primary-color);
+`;
+
 const Home: React.FC = () => {
   const controls = useAnimation();
+  const gallerySectionRef = useRef<HTMLElement>(null);
+  const heroSectionRef = useRef<HTMLElement>(null);
+  const hasScrolled = useRef(false);
+  const [isInGallery, setIsInGallery] = useState(false);
 
   useEffect(() => {
     controls.start({ opacity: 1, y: 0 });
   }, [controls]);
 
+  // 检查当前是否在相册区域
+  useEffect(() => {
+    const checkScrollPosition = () => {
+      if (!gallerySectionRef.current) return;
+      
+      const galleryTop = gallerySectionRef.current.getBoundingClientRect().top;
+      // 如果相册区域的顶部在视窗内或以上，认为用户在相册区域
+      setIsInGallery(galleryTop <= window.innerHeight / 2);
+    };
+
+    // 初始检查
+    checkScrollPosition();
+    
+    // 监听滚动事件
+    window.addEventListener('scroll', checkScrollPosition);
+    return () => {
+      window.removeEventListener('scroll', checkScrollPosition);
+    };
+  }, []);
+
+  // 添加滚轮事件监听器
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      // 防止连续触发
+      if (hasScrolled.current) return;
+      
+      if (e.deltaY > 0 && !isInGallery) {
+        // 向下滚动且在首页区域
+        e.preventDefault();
+        scrollToNextSection();
+        hasScrolled.current = true;
+      } else if (e.deltaY < 0 && isInGallery) {
+        // 向上滚动且在相册区域
+        e.preventDefault();
+        scrollToTop();
+        hasScrolled.current = true;
+      }
+      
+      // 2秒后重置标记，允许再次触发
+      if (hasScrolled.current) {
+        setTimeout(() => {
+          hasScrolled.current = false;
+        }, 2000);
+      }
+    };
+
+    // 添加触摸滑动事件
+    let touchStartY = 0;
+    
+    const handleTouchStart = (e: TouchEvent) => {
+      touchStartY = e.touches[0].clientY;
+    };
+    
+    const handleTouchMove = (e: TouchEvent) => {
+      if (hasScrolled.current) return;
+      
+      const touchY = e.touches[0].clientY;
+      const deltaY = touchStartY - touchY;
+      
+      if (deltaY > 50 && !isInGallery) {
+        // 向下滑动且在首页区域
+        e.preventDefault();
+        scrollToNextSection();
+        hasScrolled.current = true;
+      } else if (deltaY < -50 && isInGallery) {
+        // 向上滑动且在相册区域
+        e.preventDefault();
+        scrollToTop();
+        hasScrolled.current = true;
+      }
+      
+      // 2秒后重置标记，允许再次触发
+      if (hasScrolled.current) {
+        setTimeout(() => {
+          hasScrolled.current = false;
+        }, 2000);
+      }
+    };
+
+    // 注册事件监听器
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    
+    // 清理函数
+    return () => {
+      window.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
+    };
+  }, [isInGallery]);
+
+  // 滚动到相册部分
   const scrollToNextSection = () => {
-    window.scrollTo({
-      top: window.innerHeight,
-      behavior: 'smooth'
-    });
+    if (gallerySectionRef.current) {
+      gallerySectionRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+  
+  // 滚动到页面顶部
+  const scrollToTop = () => {
+    if (heroSectionRef.current) {
+      heroSectionRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   return (
     <HomeContainer>
       {/* 英雄区 - 只有一句话 */}
-      <HeroSection>
+      <HeroSection ref={heroSectionRef}>
         <HeroContent>
           <HeroTitle
             initial={{ opacity: 0, y: 20 }}
@@ -170,22 +237,10 @@ const Home: React.FC = () => {
         />
       </HeroSection>
       
-      {/* 照片网格区域 */}
-      <Section>
-        <SectionTitle>我们的照片墙</SectionTitle>
-        <SectionSubtitle>
-          用影像定格每一刻，记录爱的故事
-        </SectionSubtitle>
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-          style={{ width: '100%' }}
-        >
-          <PhotoGrid />
-        </motion.div>
-      </Section>
+      {/* 嵌入相册页面 */}
+      <GallerySection ref={gallerySectionRef}>
+        <Gallery />
+      </GallerySection>
     </HomeContainer>
   );
 };

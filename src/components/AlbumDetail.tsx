@@ -39,13 +39,14 @@ const BackButton = styled.button`
   background: linear-gradient(135deg, #007bff, #0056b3);
   color: white;
   border: none;
-  border-radius: 12px;
-  padding: 10px 15px;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 1.2rem;
   box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
   transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
 
@@ -65,17 +66,17 @@ const AlbumTitle = styled.h1`
 `;
 
 const UploadButton = styled.label`
-  background: linear-gradient(135deg, #007bff, #0056b3); // 蓝色系上传按钮
+  background: linear-gradient(135deg, #007bff, #0056b3);
   color: white;
   border: none;
-  border-radius: 12px;
-  padding: 10px 20px;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
+  justify-content: center;
+  font-size: 1.2rem;
   box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
   transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
 
@@ -400,21 +401,23 @@ const AlbumDetail: React.FC<AlbumDetailProps> = ({
       <Header>
         <HeaderLeft>
           <BackButton onClick={onBack}>
-            {FiArrowLeft({ style: { marginRight: '8px' } })} 返回
+            {FiArrowLeft({})}
           </BackButton>
           <AlbumTitle>{album.name}</AlbumTitle>
         </HeaderLeft>
         
-        <UploadButton aria-disabled={uploading}>
+        <UploadButton 
+          htmlFor="file-upload"
+          aria-disabled={uploading}
+        >
           {FiUpload({})}
-          <span>{uploading ? '上传中...' : '上传图片'}</span>
           <HiddenInput
+            id="file-upload"
             type="file"
-            accept="image/*"
             multiple
+            accept="image/*"
             onChange={handleFileSelect}
             disabled={uploading}
-            ref={fileInputRef}
           />
         </UploadButton>
       </Header>
