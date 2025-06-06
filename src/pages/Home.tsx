@@ -93,21 +93,28 @@ const Home: React.FC = () => {
   const controls = useAnimation();
   const gallerySectionRef = useRef<HTMLElement>(null);
   const heroSectionRef = useRef<HTMLElement>(null);
-  const hasScrolled = useRef(false);
+  const lastScrollDirection = useRef<'up' | 'down' | null>(null);
   const [isInGallery, setIsInGallery] = useState(false);
 
   useEffect(() => {
     controls.start({ opacity: 1, y: 0 });
   }, [controls]);
 
-  // 检查当前是否在相册区域
+  // 更精确地检查当前是否在相册区域
   useEffect(() => {
     const checkScrollPosition = () => {
       if (!gallerySectionRef.current) return;
       
-      const galleryTop = gallerySectionRef.current.getBoundingClientRect().top;
-      // 如果相册区域的顶部在视窗内或以上，认为用户在相册区域
-      setIsInGallery(galleryTop <= window.innerHeight / 2);
+      const galleryRect = gallerySectionRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      
+      // 如果相册区域占据了大部分视口，则认为用户在相册区域
+      // 这里使用30%作为阈值，可以根据实际需要调整
+      const galleryVisibleRatio = 
+        (Math.min(galleryRect.bottom, viewportHeight) - 
+         Math.max(galleryRect.top, 0)) / viewportHeight;
+      
+      setIsInGallery(galleryVisibleRatio > 0.3);
     };
 
     // 初始检查
@@ -122,60 +129,83 @@ const Home: React.FC = () => {
 
   // 添加滚轮事件监听器
   useEffect(() => {
+    let scrollTimeout: NodeJS.Timeout | null = null;
+    let isScrolling = false;
+    
     const handleWheel = (e: WheelEvent) => {
-      // 防止连续触发
-      if (hasScrolled.current) return;
+      // 如果已经在进行滚动动画，则忽略新的滚动事件
+      if (isScrolling) return;
       
-      if (e.deltaY > 0 && !isInGallery) {
+      if (e.deltaY > 10 && !isInGallery) {
         // 向下滚动且在首页区域
         e.preventDefault();
+        lastScrollDirection.current = 'down';
+        isScrolling = true;
         scrollToNextSection();
-        hasScrolled.current = true;
-      } else if (e.deltaY < 0 && isInGallery) {
+        
+        // 较短的动画完成等待时间
+        scrollTimeout = setTimeout(() => {
+          isScrolling = false;
+        }, 1200);
+        
+      } else if (e.deltaY < -10 && isInGallery) {
         // 向上滚动且在相册区域
         e.preventDefault();
+        lastScrollDirection.current = 'up';
+        isScrolling = true;
         scrollToTop();
-        hasScrolled.current = true;
-      }
-      
-      // 2秒后重置标记，允许再次触发
-      if (hasScrolled.current) {
-        setTimeout(() => {
-          hasScrolled.current = false;
-        }, 2000);
+        
+        // 较短的动画完成等待时间
+        scrollTimeout = setTimeout(() => {
+          isScrolling = false;
+        }, 1200);
       }
     };
 
     // 添加触摸滑动事件
     let touchStartY = 0;
+    let touchStartTime = 0;
     
     const handleTouchStart = (e: TouchEvent) => {
       touchStartY = e.touches[0].clientY;
+      touchStartTime = Date.now();
     };
     
     const handleTouchMove = (e: TouchEvent) => {
-      if (hasScrolled.current) return;
+      if (isScrolling) return;
       
       const touchY = e.touches[0].clientY;
       const deltaY = touchStartY - touchY;
+      const touchTime = Date.now() - touchStartTime;
       
-      if (deltaY > 50 && !isInGallery) {
+      // 计算滑动速度
+      const velocity = Math.abs(deltaY) / touchTime;
+      
+      // 快速滑动或距离足够时触发
+      const quickSwipe = velocity > 0.5 && Math.abs(deltaY) > 20;
+      const longSwipe = Math.abs(deltaY) > 40;
+      
+      if ((quickSwipe || longSwipe) && deltaY > 0 && !isInGallery) {
         // 向下滑动且在首页区域
         e.preventDefault();
+        lastScrollDirection.current = 'down';
+        isScrolling = true;
         scrollToNextSection();
-        hasScrolled.current = true;
-      } else if (deltaY < -50 && isInGallery) {
+        
+        scrollTimeout = setTimeout(() => {
+          isScrolling = false;
+        }, 1200);
+        
+      } else if ((quickSwipe || longSwipe) && deltaY < 0 && isInGallery) {
         // 向上滑动且在相册区域
         e.preventDefault();
+        lastScrollDirection.current = 'up';
+        isScrolling = true;
         scrollToTop();
-        hasScrolled.current = true;
-      }
-      
-      // 2秒后重置标记，允许再次触发
-      if (hasScrolled.current) {
-        setTimeout(() => {
-          hasScrolled.current = false;
-        }, 2000);
+        
+        scrollTimeout = setTimeout(() => {
+          isScrolling = false;
+        }, 1200);
       }
     };
 
@@ -189,20 +219,27 @@ const Home: React.FC = () => {
       window.removeEventListener('wheel', handleWheel);
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchmove', handleTouchMove);
+      if (scrollTimeout) clearTimeout(scrollTimeout);
     };
   }, [isInGallery]);
 
   // 滚动到相册部分
   const scrollToNextSection = () => {
     if (gallerySectionRef.current) {
-      gallerySectionRef.current.scrollIntoView({ behavior: 'smooth' });
+      gallerySectionRef.current.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
     }
   };
   
   // 滚动到页面顶部
   const scrollToTop = () => {
     if (heroSectionRef.current) {
-      heroSectionRef.current.scrollIntoView({ behavior: 'smooth' });
+      heroSectionRef.current.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
     }
   };
 
