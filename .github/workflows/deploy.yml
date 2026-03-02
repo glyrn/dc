@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
@@ -12,10 +13,10 @@ jobs:
 
     steps:
       - name: Checkout 仓库
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 设置 Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '16'
 
@@ -24,20 +25,30 @@ jobs:
           npm ci
           CI=false npm run build
 
+      - name: 校验部署参数
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          DEST_DIR: ${{ secrets.DEST_DIR }}
+        run: |
+          test -n "$SERVER_HOST" || { echo "❌ SERVER_HOST 为空"; exit 1; }
+          test -n "$SERVER_USER" || { echo "❌ SERVER_USER 为空"; exit 1; }
+          test -n "$DEST_DIR" || { echo "❌ DEST_DIR 为空"; exit 1; }
+
       - name: 启用 SSH Agent
         uses: webfactory/ssh-agent@v0.5.3
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: 添加服务器到 known_hosts
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
-
       - name: 部署到服务器
-        run: scp -r build/* ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ secrets.DEST_DIR }}
+        run: |
+          scp \
+            -o StrictHostKeyChecking=accept-new \
+            -o ConnectTimeout=20 \
+            -r build/* \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ secrets.DEST_DIR }}
 
-      - name: 发送邮件通知
+      - name: 发送成功邮件通知
         if: success()
         uses: dawidd6/action-send-mail@v3
         with:
@@ -49,8 +60,26 @@ jobs:
           to: goree.gly@gmail.com
           from: "GitHub Actions <${{ secrets.SMTP_USER }}>"
           body: |
-            部署完成啦！  
-            • 仓库：${{ github.repository }}  
-            • 分支：${{ github.ref_name }}  
-            • 提交：${{ github.sha }}  
+            部署完成啦！
+            • 仓库：${{ github.repository }}
+            • 分支：${{ github.ref_name }}
+            • 提交：${{ github.sha }}
+            • 运行：https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
+      - name: 发送失败邮件通知
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USER }}
+          password: ${{ secrets.SMTP_PASS }}
+          subject: "❌ cutcut 部署失败"
+          to: goree.gly@gmail.com
+          from: "GitHub Actions <${{ secrets.SMTP_USER }}>"
+          body: |
+            部署失败了，快去看日志：
+            • 仓库：${{ github.repository }}
+            • 分支：${{ github.ref_name }}
+            • 提交：${{ github.sha }}
+            • 运行：https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
