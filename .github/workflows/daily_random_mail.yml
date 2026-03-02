@@ -38,7 +38,7 @@ jobs:
           username:       ${{ secrets.SMTP_USER }}
           password:       ${{ secrets.SMTP_PASS }}
           subject:        "💌 每日随机＆纪念日通知"
-          to:             goree.gly@gmail.com
+          to:             goree.gly@gmail.com, 2028282676@qq.com
           from:           "GitHub Actions <${{ secrets.SMTP_USER }}>"
           body: |
             晚上好～  
